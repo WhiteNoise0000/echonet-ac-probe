@@ -78,15 +78,24 @@ function parseEL(msg) {
 
 function parseBitmap(edt) {
   const codes = [];
-  for (let byteIdx = 0; byteIdx < edt.length; byteIdx++) {
-    const b = edt[byteIdx];
-    for (let bit = 0; bit < 8; bit++) {
-      if (b & (1 << bit)) {
-        codes.push(byteIdx * 8 + bit);
+  if (edt.length === 0) return codes;
+  const first = edt[0];
+  if (first < 16) {
+    for (let i = 1; i <= first && i < edt.length; i++) {
+      codes.push(edt[i]);
+    }
+  } else {
+    const bmp = edt.slice(1, 17);
+    for (let byteIdx = 0; byteIdx < bmp.length; byteIdx++) {
+      const b = bmp[byteIdx];
+      for (let bit = 0; bit < 8; bit++) {
+        if (b & (1 << bit)) {
+          codes.push(0x80 + byteIdx + bit * 0x10);
+        }
       }
     }
   }
-  return codes;
+  return codes.sort((a, b) => a - b);
 }
 
 function interpret(epc, edt) {

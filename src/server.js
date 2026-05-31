@@ -99,7 +99,7 @@ async function main() {
       const l = labelStr(device);
       const lsa = s.lastSuccessAt || 0;
       const stale = lsa > 0 && (now - lsa > STALE_MS);
-      const up = (s.timestamp > 0 && !stale) ? 1 : 0;
+      const up = (lsa > 0 && !stale) ? 1 : 0;
       lines.push(`nocria_ac_up{${l}} ${up}`);
       lines.push(`nocria_ac_stale{${l}} ${stale ? 1 : 0}`);
     }

@@ -9,7 +9,7 @@
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "lint": "node --check src/echonet.js && node --check src/inspect.js && node --check src/poller.js && node --check src/server.js && node --check src/probe.js",
-    "test": "node --check src/echonet.js && node --check src/inspect.js && node --check src/poller.js && node --check src/server.js && node --check src/probe.js"
+    "test": "node src/test.js"
   },
   "dependencies": {
     "express": "^4.21.0"
