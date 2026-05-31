@@ -237,7 +237,8 @@ environment:
 | `nocria_ac_error_status` | gauge | 1=異常あり, 0=正常 |
 | `nocria_ac_instant_power_w` | gauge | 瞬時消費電力 (W) |
 | `nocria_ac_total_energy_kwh` | gauge | 積算消費電力量 (kWh) |
-| `nocria_ac_set_temperature_c` | gauge | 設定温度 (°C) |
+| `nocria_ac_set_temperature_c` | gauge | 設定温度 (°C、自動制御時は出力しない) |
+| `nocria_ac_set_temperature_valid` | gauge | 設定温度有効性 (1=有効, 0=自動制御/取得不可) |
 | `nocria_ac_room_temperature_c` | gauge | 室内温度 (°C) |
 | `nocria_ac_room_humidity_percent` | gauge | 室内湿度 (%) |
 | `nocria_ac_outdoor_temperature_c` | gauge | 外気温度 (°C、無効値は出力しない) |
@@ -331,6 +332,7 @@ ON/OFF変更、設定温度変更、運転モード変更はできません。
 
 - **依存ライブラリ最小限**: `probe.js` / `inspect.js` は Node.js 標準 `dgram` のみ。`server.js` は Express のみ追加。
 - **プロトコル**: ECHONET Lite (UDP/3610) の GET (ESV 0x62) のみ。SET 系は未実装。
+- **ポーリング最適化**: 11 EPC を1リクエストにまとめて送信 (opc=11)。応答は一括で処理。4台でも約2秒で完了。
 - **ファイル構成**:
   - `src/echonet.js` — 共通プロトコル関数 (buildGet, parseEL, interpret, parseBitmap など)
   - `src/probe.js` — 機器探索CLI (Node Profile 0x0EF001, EPC 0xD6)

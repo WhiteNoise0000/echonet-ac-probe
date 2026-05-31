@@ -40,8 +40,9 @@ function esvName(v) {
   return m[v] || `0x${v.toString(16).padStart(2, '0')}`;
 }
 
-function buildGet(deoj, epc, tid) {
-  const b = Buffer.alloc(14);
+function buildGet(deoj, epcOrList, tid) {
+  const epcs = Array.isArray(epcOrList) ? epcOrList : [epcOrList];
+  const b = Buffer.alloc(12 + epcs.length * 2);
   b[0] = 0x10;
   b[1] = 0x81;
   b.writeUInt16BE(tid, 2);
@@ -50,9 +51,11 @@ function buildGet(deoj, epc, tid) {
   b[8] = (deoj >> 8) & 0xFF;
   b[9] = deoj & 0xFF;
   b[10] = 0x62;
-  b[11] = 0x01;
-  b[12] = epc;
-  b[13] = 0x00;
+  b[11] = epcs.length;
+  for (let i = 0; i < epcs.length; i++) {
+    b[12 + i * 2] = epcs[i];
+    b[12 + i * 2 + 1] = 0x00;
+  }
   return b;
 }
 

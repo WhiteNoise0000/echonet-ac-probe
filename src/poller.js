@@ -19,10 +19,11 @@ function createPoller(localAddress, requestTimeoutMs) {
   });
   sock.on('error', () => {});
 
-  function sendGet(targetIP, epc) {
+  function sendGet(targetIP, epcs) {
     return new Promise((resolve) => {
+      const list = Array.isArray(epcs) ? epcs : [epcs];
       const tid = tidCounter++;
-      const req = buildGet(EOJ_AC, epc, tid);
+      const req = buildGet(EOJ_AC, list, tid);
       const timer = setTimeout(() => {
         if (pending && pending.targetIP === targetIP && pending.tid === tid) {
           pending = null;
@@ -46,13 +47,13 @@ function createPoller(localAddress, requestTimeoutMs) {
 
   async function pollDevice(ip) {
     const result = { timestamp: Date.now(), values: {}, errors: {}, anySuccess: false };
-    for (const epc of EPC_LIST) {
-      const res = await sendGet(ip, epc);
-      if (!res) {
-        result.errors[epc] = { reason: 'no response' };
-      } else if (res.esv === 0x52) {
-        result.errors[epc] = { reason: 'Get_SNA' };
-      } else {
+    const res = await sendGet(ip, EPC_LIST);
+    if (!res) {
+      for (const epc of EPC_LIST) result.errors[epc] = { reason: 'no response' };
+    } else if (res.esv === 0x52) {
+      for (const epc of EPC_LIST) result.errors[epc] = { reason: 'Get_SNA' };
+    } else {
+      for (const epc of EPC_LIST) {
         const prop = res.props.find(p => p.epc === epc);
         if (prop) {
           const valid = isValidValue(epc, prop.edt);
@@ -63,7 +64,7 @@ function createPoller(localAddress, requestTimeoutMs) {
           };
           if (valid) result.anySuccess = true;
         } else {
-          result.errors[epc] = { reason: 'unexpected response', raw: hex(res) };
+          result.errors[epc] = { reason: 'missing in response' };
         }
       }
     }
