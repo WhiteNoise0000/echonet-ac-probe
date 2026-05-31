@@ -39,6 +39,7 @@ async function main() {
 
   app.listen(config.httpPort, () => {
     console.log(`ECHONET Lite Web Server running on http://0.0.0.0:${config.httpPort}`);
+    console.log(`  Config: ${config.source}`);
     console.log(`  Devices: ${config.devices.map(d => `${d.name} (${d.ip})`).join(', ')}`);
     if (config.localAddress) console.log(`  Source:  ${config.localAddress}`);
     else console.log(`  Source:  (OS default route)`);

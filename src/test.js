@@ -67,20 +67,25 @@ assert(isValidValue(0x80, Buffer.from([0x30])) === true, 'operating status alway
 assert(isValidValue(0x84, Buffer.from([0x00, 0x01])) === true, 'instant power always valid');
 
 // ---- config ----
-const savedCfg = process.env.CONFIG_PATH;
-const savedAddr = process.env.LOCAL_ADDRESS;
-const savedDevices = process.env.DEVICES_JSON;
-process.env.CONFIG_PATH = 'NONEXISTENT'; // force no config.json
-delete process.env.LOCAL_ADDRESS;
-process.env.DEVICES_JSON = '[{"ip":"10.0.0.1"}]';
-const c1 = loadConfig();
-assert(c1.localAddress === null, 'config: null localAddress when unset');
-assert(Array.isArray(c1.devices) && c1.devices.length === 1, 'config: 1 device from env');
-// restore
-process.env.CONFIG_PATH = savedCfg;
-if (savedAddr) process.env.LOCAL_ADDRESS = savedAddr;
-if (savedDevices) process.env.DEVICES_JSON = savedDevices;
-else delete process.env.DEVICES_JSON;
+(function testConfig() {
+  const saveCfg = process.env.CONFIG_PATH;
+  const saveAddr = process.env.LOCAL_ADDRESS;
+  const saveDev = process.env.DEVICES_JSON;
+
+  process.env.CONFIG_PATH = 'NONEXISTENT';
+  delete process.env.LOCAL_ADDRESS;
+  process.env.DEVICES_JSON = '[{"ip":"10.0.0.1"}]';
+  const c = loadConfig();
+  assert(c.localAddress === null, 'config: null localAddress when unset');
+  assert(c.devices.length === 1, 'config: 1 device from env');
+  assert(c.source === 'environment', 'config: source=environment when DEVICES_JSON set');
+  assert(c.hasDevicesJson === true, 'config: hasDevicesJson=true');
+
+  // restore
+  if (saveCfg) process.env.CONFIG_PATH = saveCfg; else delete process.env.CONFIG_PATH;
+  if (saveAddr) process.env.LOCAL_ADDRESS = saveAddr; else delete process.env.LOCAL_ADDRESS;
+  if (saveDev) process.env.DEVICES_JSON = saveDev; else delete process.env.DEVICES_JSON;
+})();
 
 // ---- summary ----
 const total = passed + failed;

@@ -2,13 +2,26 @@ const fs = require('fs');
 const path = require('path');
 
 function loadConfig() {
-  const configPath = process.env.CONFIG_PATH || path.resolve(__dirname, '..', 'config.json');
+  const defaultPath = path.resolve(__dirname, '..', 'config.json');
+  const configPath = process.env.CONFIG_PATH || defaultPath;
+  const hasExplicitPath = !!process.env.CONFIG_PATH;
+  const hasDevicesJson = !!process.env.DEVICES_JSON;
+  const fileExists = fs.existsSync(configPath);
 
   let raw = {};
-  if (fs.existsSync(configPath)) {
+  let source;
+
+  if (fileExists) {
     raw = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    source = configPath;
+  } else if (hasDevicesJson) {
+    source = 'environment';
+  } else if (hasExplicitPath) {
+    console.warn(`warning: config not found at ${configPath}. set DEVICES_JSON env var or mount config file.`);
+    source = configPath + ' (missing)';
   } else {
-    console.warn(`config not found at ${configPath}, using env defaults`);
+    console.warn(`warning: config not found at ${configPath}. set DEVICES_JSON env var or create config.json.`);
+    source = defaultPath + ' (missing)';
   }
 
   const localAddress = process.env.LOCAL_ADDRESS || raw.localAddress || null;
@@ -17,7 +30,7 @@ function loadConfig() {
   const requestTimeoutMs = parseInt(process.env.REQUEST_TIMEOUT_MS || String(raw.requestTimeoutMs || 5000), 10);
 
   let devices = raw.devices || [];
-  if (process.env.DEVICES_JSON) {
+  if (hasDevicesJson) {
     try { devices = JSON.parse(process.env.DEVICES_JSON); }
     catch (e) { console.error('DEVICES_JSON parse error:', e.message); process.exit(1); }
   }
@@ -37,7 +50,7 @@ function loadConfig() {
     };
   });
 
-  return { localAddress, httpPort, pollIntervalMs, requestTimeoutMs, devices: enriched };
+  return { localAddress, httpPort, pollIntervalMs, requestTimeoutMs, devices: enriched, source, hasDevicesJson };
 }
 
 module.exports = { loadConfig };
