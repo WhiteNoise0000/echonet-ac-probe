@@ -16,7 +16,7 @@ services:
       # (comment out CONFIG_PATH above and uncomment below):
       # - LOCAL_ADDRESS=192.168.x.xxx
       # - HTTP_PORT=3000
-      # - DEVICES_JSON=[{"ip":"192.168.0.122","id":"study-3f","name":"3F書斎"},{"ip":"192.168.0.101","id":"room-101"}]
+      # - DEVICES_JSON=[{"ip":"192.168.1.101","id":"living-room","name":"Living Room"},{"ip":"192.168.1.102","id":"study","name":"Study"}]
     volumes:
       # Mount config file read-only.
       # On TrueNAS: /mnt/pool/path/config.json:/config/config.json:ro

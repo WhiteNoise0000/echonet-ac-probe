@@ -63,7 +63,7 @@ npm run probe -- --local-address 192.168.x.x --scan
 | `--scan-interval <ms>` | プローブ間隔 | 300 |
 
 ```console
-npm run probe -- --local-address 192.168.0.144 --scan-all --scan-interval 150
+npm run probe -- --local-address 192.168.1.10 --scan-all --scan-interval 150
 ```
 
 ---
@@ -82,7 +82,7 @@ npm run inspect -- --local-address 192.168.x.x --target <AC-IP>
 複数台同時:
 
 ```console
-npm run inspect -- --local-address 192.168.0.144 --target 192.168.0.101 --target 192.168.0.121
+npm run inspect -- --local-address 192.168.1.10 --target 192.168.1.101 --target 192.168.1.102
 ```
 
 | オプション | 説明 | デフォルト |
@@ -172,8 +172,8 @@ npm start        # or: npm run dev
   "requestTimeoutMs": 5000,
   "httpPort": 3000,
   "devices": [
-    { "ip": "192.168.0.122", "id": "study-3f", "name": "3F書斎" },
-    { "ip": "192.168.0.101", "room": "101" }
+    { "ip": "192.168.1.101", "id": "living-room", "name": "Living Room" },
+    { "ip": "192.168.1.102", "id": "study", "name": "Study" }
   ]
 }
 ```
@@ -202,9 +202,9 @@ TrueNAS / Docker Compose での使用例:
 
 ```yaml
 environment:
-  LOCAL_ADDRESS: "192.168.0.144"
+  LOCAL_ADDRESS: "192.168.1.10"
   HTTP_PORT: "3000"
-  DEVICES_JSON: '[{"ip":"192.168.0.122","id":"study-3f","name":"3F書斎"},{"ip":"192.168.0.101"}]'
+  DEVICES_JSON: '[{"ip":"192.168.1.101","id":"living-room","name":"Living Room"},{"ip":"192.168.1.102","id":"study","name":"Study"}]'
 ```
 
 ### API
@@ -284,9 +284,9 @@ services:
     network_mode: host
     restart: unless-stopped
     environment:
-      - LOCAL_ADDRESS=192.168.0.144
+      - LOCAL_ADDRESS=192.168.1.10
       - HTTP_PORT=3000
-      - DEVICES_JSON=[{"ip":"192.168.0.122","id":"study-3f","name":"3F書斎"},{"ip":"192.168.0.101"}]
+      - DEVICES_JSON=[{"ip":"192.168.1.101","id":"living-room","name":"Living Room"},{"ip":"192.168.1.102","id":"study","name":"Study"}]
       - TZ=Asia/Tokyo
 ```
 
@@ -309,6 +309,11 @@ docker run --rm --network=host -v /path/to/config.json:/config/config.json:ro ec
 | 特権昇格 | 不要 (通常のUDP送受信のみ) |
 
 `/config/config.json` は read-only でマウントしてください。アプリは設定ファイルに書き込みを行いません。
+
+> **実設定をイメージに含めないでください。**
+> Dockerイメージには `config.example.json` のみ含まれています。
+> 実際の `config.json` (IPアドレス・MACアドレス・部屋名など) は
+> volume mount または環境変数で注入してください。
 
 ### IP変動への備え
 
