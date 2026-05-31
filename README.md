@@ -272,6 +272,9 @@ services:
 
 #### 環境変数だけで動かす例 (config.json不要)
 
+`LOCAL_ADDRESS` は単一NIC環境では省略可能です。
+複数NIC / VLAN / VPN 環境では明示指定を推奨します。
+
 ```yaml
 services:
   echonet-ac-probe:

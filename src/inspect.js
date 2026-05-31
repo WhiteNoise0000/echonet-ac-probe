@@ -51,7 +51,6 @@ function parseArgs() {
       default: console.error(`error: unknown option: ${args[i]}`); help(); process.exit(1);
     }
   }
-  if (!localAddress) { console.error('error: --local-address is required'); process.exit(1); }
   if (targets.length === 0) { console.error('error: at least one --target is required'); process.exit(1); }
   return { localAddress, targets, timeout };
 }
@@ -72,7 +71,7 @@ async function main() {
   let pending = null;
 
   sock.on('message', (msg, rinfo) => {
-    if (rinfo.address === localAddress) return;
+    if (localAddress && rinfo.address === localAddress) return;
     if (pending && rinfo.address === pending.targetIP) {
       const p = parseEL(msg);
       if (p && p.tid === pending.tid) {
@@ -110,7 +109,7 @@ async function main() {
   }
 
   await new Promise((resolveBind) => {
-    sock.bind(PORT, localAddress, resolveBind);
+    sock.bind(PORT, localAddress || undefined, resolveBind);
   });
 
   for (const ip of targets) {

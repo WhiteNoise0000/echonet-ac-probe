@@ -40,8 +40,11 @@ async function main() {
   app.listen(config.httpPort, () => {
     console.log(`ECHONET Lite Web Server running on http://0.0.0.0:${config.httpPort}`);
     console.log(`  Devices: ${config.devices.map(d => `${d.name} (${d.ip})`).join(', ')}`);
+    if (config.localAddress) console.log(`  Source:  ${config.localAddress}`);
+    else console.log(`  Source:  (OS default route)`);
     console.log(`  Poll interval: ${config.pollIntervalMs}ms, stale threshold: ${STALE_MS}ms`);
     console.log(`  Read-only mode (no SET commands)`);
+    if (!config.localAddress) console.log(`  Note: multi-NIC/VPN environment requires LOCAL_ADDRESS`);
   });
 
   poll().then(() => setInterval(poll, config.pollIntervalMs));

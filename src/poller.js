@@ -9,7 +9,7 @@ function createPoller(localAddress, requestTimeoutMs) {
   let pending = null;
 
   sock.on('message', (msg, rinfo) => {
-    if (rinfo.address === localAddress) return;
+    if (localAddress && rinfo.address === localAddress) return;
     if (pending && rinfo.address === pending.targetIP) {
       const p = parseEL(msg);
       if (p && p.tid === pending.tid) {
@@ -40,7 +40,8 @@ function createPoller(localAddress, requestTimeoutMs) {
   }
 
   async function init() {
-    await new Promise((resolve) => sock.bind(PORT, localAddress, resolve));
+    const bindArgs = localAddress ? [PORT, localAddress] : [PORT];
+    await new Promise((resolve) => sock.bind(...bindArgs, resolve));
   }
 
   async function pollDevice(ip) {

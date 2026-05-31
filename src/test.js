@@ -1,4 +1,5 @@
 const { parseBitmap, interpret, isValidValue } = require('./echonet');
+const { loadConfig } = require('./config');
 
 let passed = 0;
 let failed = 0;
@@ -64,6 +65,22 @@ assert(isValidValue(0xB3, Buffer.from([25])) === true, 'set temp 25 always valid
 assert(isValidValue(0xB3, Buffer.from([0x7E])) === true, 'set temp 126 also valid (not a sensor)');
 assert(isValidValue(0x80, Buffer.from([0x30])) === true, 'operating status always valid');
 assert(isValidValue(0x84, Buffer.from([0x00, 0x01])) === true, 'instant power always valid');
+
+// ---- config ----
+const savedCfg = process.env.CONFIG_PATH;
+const savedAddr = process.env.LOCAL_ADDRESS;
+const savedDevices = process.env.DEVICES_JSON;
+process.env.CONFIG_PATH = 'NONEXISTENT'; // force no config.json
+delete process.env.LOCAL_ADDRESS;
+process.env.DEVICES_JSON = '[{"ip":"10.0.0.1"}]';
+const c1 = loadConfig();
+assert(c1.localAddress === null, 'config: null localAddress when unset');
+assert(Array.isArray(c1.devices) && c1.devices.length === 1, 'config: 1 device from env');
+// restore
+process.env.CONFIG_PATH = savedCfg;
+if (savedAddr) process.env.LOCAL_ADDRESS = savedAddr;
+if (savedDevices) process.env.DEVICES_JSON = savedDevices;
+else delete process.env.DEVICES_JSON;
 
 // ---- summary ----
 const total = passed + failed;

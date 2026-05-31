@@ -173,17 +173,14 @@ function subnetIPs(localAddress) {
 function run() {
   const { localAddress, target, scan, scanAll, scanInterval, timeout } = parseArgs();
 
-  if (!localAddress) {
-    console.error('error: --local-address is required (use --help for details)');
-    process.exit(1);
-  }
-  warnNoInterface(localAddress);
+  if (localAddress) warnNoInterface(localAddress);
 
   let isUnicast = !!target;
   let destAddr = target || MULTICAST_ADDR;
   let scanTargets = null;
 
   if (scan) {
+    if (!localAddress) { console.error('error: --scan requires --local-address'); process.exit(1); }
     isUnicast = true;
     scanTargets = subnetIPs(localAddress);
     if (scanTargets.length === 0) {
@@ -205,7 +202,7 @@ function run() {
   let req = buildGet(0xD6);
 
   function handleResponse(msg, rinfo) {
-    if (rinfo.address === localAddress) return;
+    if (localAddress && rinfo.address === localAddress) return;
     gotResponse = true;
     const p = parseEL(msg);
     if (!p) return;
@@ -238,9 +235,9 @@ function run() {
     process.exit(1);
   });
 
-  sock.bind(PORT, localAddress, () => {
+  sock.bind(PORT, localAddress || undefined, () => {
     if (scan || !target) {
-      sock.addMembership(MULTICAST_ADDR, localAddress);
+      sock.addMembership(MULTICAST_ADDR, localAddress || undefined);
     }
     sock.setMulticastLoopback(false);
 

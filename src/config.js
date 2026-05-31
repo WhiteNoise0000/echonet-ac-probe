@@ -11,7 +11,7 @@ function loadConfig() {
     console.warn(`config not found at ${configPath}, using env defaults`);
   }
 
-  const localAddress = process.env.LOCAL_ADDRESS || raw.localAddress || '';
+  const localAddress = process.env.LOCAL_ADDRESS || raw.localAddress || null;
   const httpPort = parseInt(process.env.HTTP_PORT || String(raw.httpPort || 3000), 10);
   const pollIntervalMs = parseInt(process.env.POLL_INTERVAL_MS || String(raw.pollIntervalMs || 30000), 10);
   const requestTimeoutMs = parseInt(process.env.REQUEST_TIMEOUT_MS || String(raw.requestTimeoutMs || 5000), 10);
@@ -24,11 +24,6 @@ function loadConfig() {
 
   if (!Array.isArray(devices) || devices.length === 0) {
     console.error('error: devices is empty. set config.json devices or DEVICES_JSON env var.');
-    process.exit(1);
-  }
-
-  if (!localAddress) {
-    console.error('error: localAddress is required. set in config.json or LOCAL_ADDRESS env var.');
     process.exit(1);
   }
 
