@@ -56,13 +56,20 @@ assert(interpret(0xB0, Buffer.from([0x42])) === '冷房', 'operation mode coolin
 assert(interpret(0xBE, Buffer.from([0x7E])) === '126 °C', 'outdoor 126 raw');
 assert(interpret(0xBE, Buffer.from([0x1D])) === '29 °C', 'outdoor 29 raw');
 
+// ---- 0xB3 auto-mode special value ----
+assert(interpret(0xB3, Buffer.from([0xFD])) === '自動制御', 'set temp auto mode (0xFD)');
+assert(interpret(0xB3, Buffer.from([0xF0])) === '自動制御', 'set temp auto mode (0xF0)');
+assert(interpret(0xB3, Buffer.from([25])) === '25 °C', 'set temp manual 25');
+
 // ---- isValidValue ----
 assert(isValidValue(0xBE, Buffer.from([0x1D])) === true, 'valid outdoor 29');
 assert(isValidValue(0xBE, Buffer.from([0x7E])) === false, 'invalid outdoor 126');
 assert(isValidValue(0xBB, Buffer.from([0x7F])) === false, 'invalid indoor 127');
 assert(isValidValue(0xBB, Buffer.from([25])) === true, 'valid indoor 25');
-assert(isValidValue(0xB3, Buffer.from([25])) === true, 'set temp 25 always valid');
-assert(isValidValue(0xB3, Buffer.from([0x7E])) === true, 'set temp 126 also valid (not a sensor)');
+assert(isValidValue(0xB3, Buffer.from([25])) === true, 'set temp 25 valid');
+assert(isValidValue(0xB3, Buffer.from([0xFD])) === false, 'set temp 0xFD invalid (auto mode)');
+assert(isValidValue(0xB3, Buffer.from([0xF0])) === false, 'set temp 0xF0 invalid (auto mode)');
+assert(isValidValue(0xB3, Buffer.from([0x7E])) === true, 'set temp 126 valid (not a sensor, under 0xF0)');
 assert(isValidValue(0x80, Buffer.from([0x30])) === true, 'operating status always valid');
 assert(isValidValue(0x84, Buffer.from([0x00, 0x01])) === true, 'instant power always valid');
 

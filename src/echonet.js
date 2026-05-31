@@ -129,7 +129,10 @@ function interpret(epc, edt) {
       return h;
     case 0xB3:
       if (edt.length >= 2) return `${(edt.readInt16BE(0) / 10).toFixed(1)} °C`;
-      if (edt.length === 1) return `${edt[0]} °C`;
+      if (edt.length === 1) {
+        if (edt[0] >= 0xF0) return '自動制御';
+        return `${edt[0]} °C`;
+      }
       return `${h} (?B)`;
     case 0xBA:
       if (edt.length >= 1) return `${edt[0]} %`;
@@ -153,6 +156,7 @@ function isValidValue(epc, edt) {
   if (!edt || edt.length === 0) return false;
   const temps = [0xBB, 0xBE];
   if (temps.includes(epc) && edt.length === 1 && edt[0] >= TEMP_SENTINEL) return false;
+  if (epc === 0xB3 && edt.length === 1 && edt[0] >= 0xF0) return false;
   return true;
 }
 

@@ -171,11 +171,16 @@ async function main() {
 
     lines.push('# HELP nocria_ac_set_temperature_c Set temperature in Celsius');
     lines.push('# TYPE nocria_ac_set_temperature_c gauge');
+    lines.push('# HELP nocria_ac_set_temperature_valid Whether set temperature data is valid (1=valid, 0=auto/unavailable)');
+    lines.push('# TYPE nocria_ac_set_temperature_valid gauge');
     for (const device of config.devices) {
       const s = latestStatus[device.ip];
       if (!s) continue;
       const v = s.values && s.values[0xB3];
-      if (v && v.valid) { const n = parseFloat(v.dec); if (!isNaN(n)) lines.push(`nocria_ac_set_temperature_c{${labelStr(device)}} ${n}`); }
+      if (v) {
+        lines.push(`nocria_ac_set_temperature_valid{${labelStr(device)}} ${v.valid ? 1 : 0}`);
+        if (v.valid) { const n = parseFloat(v.dec); if (!isNaN(n)) lines.push(`nocria_ac_set_temperature_c{${labelStr(device)}} ${n}`); }
+      }
     }
 
     lines.push('# HELP nocria_ac_room_temperature_c Room temperature in Celsius');
