@@ -13,6 +13,12 @@ async function main() {
 
   let latestStatus = {};
   const lastSuccessAt = {};
+  const pollStatus = {
+    lastPollStartedAt: 0,
+    lastPollFinishedAt: 0,
+    pollingDurationMs: 0,
+    pollInProgress: false,
+  };
 
   for (const device of config.devices) {
     latestStatus[device.ip] = { timestamp: 0, values: {}, errors: { init: { reason: 'pending' } } };
@@ -20,6 +26,9 @@ async function main() {
   }
 
   async function poll() {
+    if (pollStatus.pollInProgress) return;
+    pollStatus.pollInProgress = true;
+    pollStatus.lastPollStartedAt = Date.now();
     try {
       const fresh = await poller.pollAll(config.devices);
       const now = Date.now();
@@ -33,6 +42,14 @@ async function main() {
     } catch (err) {
       console.error('poll error:', err.message);
     }
+    pollStatus.lastPollFinishedAt = Date.now();
+    pollStatus.pollingDurationMs = pollStatus.lastPollFinishedAt - pollStatus.lastPollStartedAt;
+    pollStatus.pollInProgress = false;
+  }
+
+  async function pollLoop() {
+    await poll();
+    setTimeout(pollLoop, config.pollIntervalMs);
   }
 
   const app = express();
@@ -48,7 +65,7 @@ async function main() {
     if (!config.localAddress) console.log(`  Note: multi-NIC/VPN environment requires LOCAL_ADDRESS`);
   });
 
-  poll().then(() => setInterval(poll, config.pollIntervalMs));
+  pollLoop();
 
   app.use(express.static(path.resolve(__dirname, 'public')));
 
@@ -78,7 +95,7 @@ async function main() {
         errors: s.errors || {},
       };
     }
-    res.json(data);
+    res.json({ devices: data, pollStatus });
   });
 
   app.get('/metrics', (_req, res) => {

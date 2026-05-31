@@ -1,7 +1,7 @@
 {
   "localAddress": "192.168.1.10",
   "pollIntervalMs": 30000,
-  "requestTimeoutMs": 5000,
+  "requestTimeoutMs": 2000,
   "httpPort": 3000,
   "devices": [
     { "ip": "192.168.1.101", "id": "living-room", "name": "Living Room" },

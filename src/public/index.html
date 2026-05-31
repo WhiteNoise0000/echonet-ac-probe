@@ -122,7 +122,9 @@ function cardHTML(d) {
   const v = d.values || {};
   const e = d.errors || {};
   const stale = !!d.stale;
-  const onoff = v[0x80] && v[0x80].dec === 'ON';
+  const hasOpStatus = v[0x80] && v[0x80].valid !== false;
+  const opOn = hasOpStatus && v[0x80].dec === 'ON';
+  const opOff = hasOpStatus && v[0x80].dec === 'OFF';
   const name = d.name || d.room || d.id || d.ip;
   const lsa = d.lastSuccessAt || 0;
   const tsFormatted = lsa ? new Date(lsa).toLocaleTimeString('ja-JP') : null;
@@ -130,8 +132,9 @@ function cardHTML(d) {
   let barClass = 'bar-stale', badgeClass = 'badge-stale', badgeText = '—';
   if (!lsa) { badgeText = '未取得'; badgeClass = 'badge-stale'; }
   else if (stale) { badgeText = 'stale'; badgeClass = 'badge-stale'; }
-  else if (onoff) { barClass = 'bar-on'; badgeClass = 'badge-on'; badgeText = 'ON'; }
-  else { barClass = 'bar-off'; badgeClass = 'badge-off'; badgeText = 'OFF'; }
+  else if (opOn) { barClass = 'bar-on'; badgeClass = 'badge-on'; badgeText = 'ON'; }
+  else if (opOff) { barClass = 'bar-off'; badgeClass = 'badge-off'; badgeText = 'OFF'; }
+  else { barClass = 'bar-off'; badgeClass = 'badge-off'; badgeText = '—'; }
 
   function val(epc) {
     if (v[epc]) {
@@ -181,7 +184,8 @@ function cardHTML(d) {
 async function refresh() {
   try {
     const r = await fetch('/api/status');
-    const data = await r.json();
+    const body = await r.json();
+    const data = body.devices || body; // handle both old flat and new {devices,pollStatus}
     document.getElementById('cards').innerHTML = Object.values(data).map(cardHTML).join('');
   } catch (e) { console.error(e); }
 }

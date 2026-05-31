@@ -89,7 +89,7 @@ npm run inspect -- --local-address 192.168.1.10 --target 192.168.1.101 --target 
 |---|---|---|
 | `--local-address <IP>` | 送信元IPv4アドレス | _(必須)_ |
 | `--target <IP>` | 対象ACのIP (複数指定可) | _(必須)_ |
-| `--timeout <ms>` | 1リクエストあたりのタイムアウト | 5000 |
+| `--timeout <ms>` | 1リクエストあたりのタイムアウト | 2000 |
 
 ### 動作
 
@@ -169,7 +169,7 @@ npm start        # or: npm run dev
 {
   "localAddress": "192.168.x.xxx",
   "pollIntervalMs": 30000,
-  "requestTimeoutMs": 5000,
+  "requestTimeoutMs": 2000,
   "httpPort": 3000,
   "devices": [
     { "ip": "192.168.1.101", "id": "living-room", "name": "Living Room" },
@@ -195,7 +195,7 @@ npm start        # or: npm run dev
 | `LOCAL_ADDRESS` | 送信元IPv4アドレス |
 | `HTTP_PORT` | Webサーバのポート |
 | `POLL_INTERVAL_MS` | ポーリング間隔 (ms) |
-| `REQUEST_TIMEOUT_MS` | 1リクエストあたりのタイムアウト (ms) |
+| `REQUEST_TIMEOUT_MS` | 1リクエストあたりのタイムアウト (ms) (推奨 2000) |
 | `DEVICES_JSON` | devices 配列をJSON文字列で直接指定 (config.jsonより優先) |
 
 TrueNAS / Docker Compose での使用例:
