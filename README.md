@@ -1,66 +1,66 @@
 # ECHONET AC Probe
 
-OP-J03DZ / 家庭用エアコンがLAN内に見えるか確認するための最小 Node.js CLI ツール。
+富士通ノクリア (OP-J03DZ) 対応 ECHONET Lite エアコン探索・状態監視ツール
 
-## Requirements
+## 必要環境
 
 - Node.js 18+
 - Windows
 
-## Setup
+## セットアップ
 
 ```console
 npm install
 ```
 
-## Usage
+## 使い方 (CLI)
 
-### Multicast mode (default)
+### マルチキャスト探索 (default)
 
 ```console
 npm run probe -- --local-address 192.168.x.x
 ```
 
-Your `--local-address` must be the **LAN-side IPv4 address** of your PC (run `ipconfig` to find it).
+`--local-address` には PC の LAN 側 IPv4 アドレスを指定します (`ipconfig` で確認)。
 
-### Unicast mode (when multicast doesn't work)
+### ユニキャスト探索 (マルチキャストが通らない場合)
 
 ```console
 npm run probe -- --local-address 192.168.x.x --target 192.168.x.y
 ```
 
-Sends the same ECHONET Lite Get directly to a specific IP. Useful when:
-- Wi-Fi AP isolation blocks multicast
-- The device IP is already known
-- You want to probe likely candidates from `arp -a` output
+ECHONET Lite Get を特定 IP に直接送信します。以下の場合に有効:
+- Wi-Fi AP分離 (クライアント分離) でマルチキャストがブロックされている
+- 機器の IP が既知
+- `arp -a` の出力から候補を探す
 
-### Options
+### オプション
 
-| Option | Description | Default |
+| オプション | 説明 | デフォルト |
 |---|---|---|
-| `--local-address <IP>` | Source IPv4 address for binding | _(required)_ |
-| `--target <IP>` | Unicast to specific IP instead of multicast | 224.0.23.0 |
-| `--timeout <ms>` | Response wait time | 10000 |
+| `--local-address <IP>` | 送信元IPv4アドレス | _(必須)_ |
+| `--target <IP>` | ユニキャスト送信先 | 224.0.23.0 |
+| `--timeout <ms>` | 応答待機時間 | 10000 |
 
 ```console
 npm run probe -- --local-address 192.168.1.100 --timeout 15000
 npm run probe -- --local-address 192.168.1.100 --target 192.168.1.50 --timeout 5000
 ```
 
-### Scan mode
+### スキャンモード
 
 ```console
 npm run probe -- --local-address 192.168.x.x --scan
 ```
 
-Scans the entire /24 subnet sequentially, stopping at the first ECHONET Lite response.
-Use `--scan-all` to find all devices without stopping.
+/24 サブネットを順次スキャンし、最初に応答があった ECHONET Lite 機器で停止します。
+`--scan-all` で全台検出:
 
-| Option | Description | Default |
+| オプション | 説明 | デフォルト |
 |---|---|---|
-| `--scan` | Scan /24 subnet, stop on first hit | — |
-| `--scan-all` | Scan /24 subnet fully | — |
-| `--scan-interval <ms>` | Delay between probes | 300 |
+| `--scan` | サブネットスキャン (初回応答で停止) | — |
+| `--scan-all` | サブネットスキャン (全台) | — |
+| `--scan-interval <ms>` | プローブ間隔 | 300 |
 
 ```console
 npm run probe -- --local-address 192.168.0.144 --scan-all --scan-interval 150
@@ -68,39 +68,38 @@ npm run probe -- --local-address 192.168.0.144 --scan-all --scan-interval 150
 
 ---
 
-## Inspect — Read EPCs from discovered AC units
+## Inspect — 発見済みエアコンのEPC読み取り
 
 ```console
 npm run inspect -- --local-address 192.168.x.x --target <AC-IP>
 ```
 
-For each target IP's EOJ `0x013001` (Home Air Conditioner):
-1. Gets the property map (EPC `0x9F`) and lists all readable EPCs.
-2. Highlights target EPCs: `0x80`, `0x84`, `0x85`, `0x88`, `0xB0`, `0xB3`, `0xBB`, `0xBE`.
-3. GETs `0x84` (積算消費電力量) and `0x85` (瞬時消費電力) and shows interpreted values.
+各対象IPの EOJ `0x013001` (Home Air Conditioner) に対して:
+1. Getプロパティマップ (EPC `0x9F`) を取得し、読み取り可能なEPC一覧を表示
+2. 注目EPC (`0x80`, `0x84`, `0x85`, `0x88`, `0xB0`, `0xB3`, `0xBB`, `0xBE`) をハイライト
+3. 各EPCをGETし、解釈値を表示
 
-Multiple targets:
+複数台同時:
 
 ```console
 npm run inspect -- --local-address 192.168.0.144 --target 192.168.0.101 --target 192.168.0.121
 ```
 
-| Option | Description | Default |
+| オプション | 説明 | デフォルト |
 |---|---|---|
-| `--local-address <IP>` | Source IPv4 address | _(required)_ |
-| `--target <IP>` | Target AC IP (repeatable) | _(required)_ |
-| `--timeout <ms>` | Per-request timeout | 5000 |
+| `--local-address <IP>` | 送信元IPv4アドレス | _(必須)_ |
+| `--target <IP>` | 対象ACのIP (複数指定可) | _(必須)_ |
+| `--timeout <ms>` | 1リクエストあたりのタイムアウト | 5000 |
 
-### What it does
+### 動作
 
-1. **Multicast mode:** Joins multicast group `224.0.23.0:3610` on the specified interface.
-   **Unicast mode:** Sends directly to `--target` IP on port 3610.
-2. Sends ECHONET Lite **Get** (ESV 0x62) for **Node Profile (0x0EF001)** property **EPC 0xD6** (Self Instance List S).
-3. Listens for responses.
-4. Parses and displays every response: source IP, raw hex, SEOJ, DEOJ, ESV, EPC, PDC, EDT.
-5. If EPC 0xD6 data is present, decodes the EOJ list and marks `0x0130xx` as **Home Air Conditioner candidate**.
+1. **マルチキャストモード:** `224.0.23.0:3610` にマルチキャスト参加
+   **ユニキャストモード:** `--target` IP のポート 3610 に直接送信
+2. **Node Profile (0x0EF001)** の **EPC 0xD6** (Self Instance List S) を Get
+3. 応答を待受、表示: 送信元IP, raw hex, SEOJ, DEOJ, ESV, EPC, PDC, EDT
+4. EPC 0xD6 の応答時は EOJ一覧をパースし、`0x0130xx` に **Home Air Conditioner candidate** マーク
 
-### Example output
+### 出力例
 
 ```
 ECHONET Lite Probe
@@ -123,25 +122,25 @@ Response from 192.168.1.50
     0x05ff01
 ```
 
-### No response?
+### 応答がない場合
 
 ```
 No ECHONET Lite responses received.
 ```
 
-Common causes:
+主な原因:
 
-| Cause | Check |
+| 原因 | 確認方法 |
 |---|---|---|
-| Wrong `--local-address` | Run `ipconfig` and confirm the IP belongs to your active LAN adapter |
-| Firewall blocking UDP/3610 | Temporarily disable Windows Firewall, or add a rule (see below) |
-| AP isolation (client isolation) | Wi-Fi router setting that blocks device-to-device traffic |
-| HEMS / ECHONET Lite mode disabled | Check OP-J03DZ settings |
-| Different VLAN / subnet | PC and air conditioner must be on the same Layer-2 network |
-| Port 3610 already in use | Close other ECHONET Lite apps (e.g. ECHONET Lite Monitor, etc.) |
-| Multicast not forwarded | Try unicast mode with `--target <IP>` |
+| `--local-address` が間違っている | `ipconfig` で正しいLAN側IPを確認 |
+| ファイアウォールが UDP/3610 をブロック | 一時的に無効化、または受信許可ルール追加 |
+| AP分離 (クライアント分離) | Wi-Fiルーターの設定を確認 |
+| HEMS/ECHONET Lite モード未設定 | OP-J03DZ の設定を確認 |
+| 別VLAN/サブネット | PCとエアコンを同一L2ネットワークに |
+| ポート3610が既に使用中 | 他アプリケーションを終了 |
+| マルチキャストが転送されていない | `--target` でユニキャストを試す |
 
-### Firewall rule (admin PowerShell)
+### ファイアウォールルール (管理者PowerShell)
 
 ```powershell
 netsh advfirewall firewall add rule name="EL-Probe" protocol=UDP dir=in localport=3610 action=allow
@@ -149,14 +148,13 @@ netsh advfirewall firewall add rule name="EL-Probe" protocol=UDP dir=in localpor
 
 ---
 
-## Web App — 富士通ノクリア 状態モニター
+## Web App — 状態モニター
 
-継続的に4台のエアコン状態を取得し、Web UI と Prometheus 形式のメトリクスを提供します。
+継続的にエアコン状態を取得し、Web UI と Prometheus 形式のメトリクスを提供します。
 
 ### 起動
 
 ```console
-npm install
 npm start        # or: npm run dev
 ```
 
@@ -191,7 +189,7 @@ npm start        # or: npm run dev
 
 | エンドポイント | 説明 |
 |---|---|
-| `GET /` | 4台の状態カードUI |
+| `GET /` | 状態カードUI |
 | `GET /health` | `{ "status": "alive", "uptime": ... }` |
 | `GET /api/devices` | 設定済みデバイス一覧 |
 | `GET /api/status` | 最新取得値のJSON |
@@ -202,6 +200,8 @@ npm start        # or: npm run dev
 | メトリクス名 | 型 | ラベル | 説明 |
 |---|---|---|---|
 | `nocria_ac_up` | gauge | `room`, `ip` | 1=応答あり, 0=ダウン |
+| `nocria_ac_stale` | gauge | `room`, `ip` | 1=stale (90秒以上未更新) |
+| `nocria_ac_last_success_timestamp_seconds` | gauge | `room`, `ip` | 最終成功取得のUnix時刻 |
 | `nocria_ac_operation_status` | gauge | `room`, `ip` | 1=ON, 0=OFF |
 | `nocria_ac_error_status` | gauge | `room`, `ip` | 1=異常あり, 0=正常 |
 | `nocria_ac_instant_power_w` | gauge | `room`, `ip` | 瞬時消費電力 (W) |
@@ -209,12 +209,10 @@ npm start        # or: npm run dev
 | `nocria_ac_set_temperature_c` | gauge | `room`, `ip` | 設定温度 (°C) |
 | `nocria_ac_room_temperature_c` | gauge | `room`, `ip` | 室内温度 (°C) |
 | `nocria_ac_room_humidity_percent` | gauge | `room`, `ip` | 室内湿度 (%) |
-| `nocria_ac_stale` | gauge | `room`, `ip` | 1=stale (90s以上未更新) |
-| `nocria_ac_last_success_timestamp_seconds` | gauge | `room`, `ip` | 最終成功取得のUnix時刻 |
 | `nocria_ac_outdoor_temperature_c` | gauge | `room`, `ip` | 外気温度 (°C、無効値は出力しない) |
 | `nocria_ac_outdoor_temperature_valid` | gauge | `room`, `ip` | 外気温度有効性 (1=有効, 0=取得不可) |
 
-### TrueNAS Custom App デプロイメモ
+### TrueNAS Custom App デプロイ
 
 Dockerfile 例:
 
@@ -241,7 +239,7 @@ ON/OFF変更、設定温度変更、運転モード変更はできません。
 
 ---
 
-## How it works
+## 仕組み
 
 - **依存ライブラリ最小限**: `probe.js` / `inspect.js` は Node.js 標準 `dgram` のみ。`server.js` は Express のみ追加。
 - **プロトコル**: ECHONET Lite (UDP/3610) の GET (ESV 0x62) のみ。SET 系は未実装。
