@@ -82,7 +82,7 @@ async function main() {
     const lines = [];
     const now = Date.now();
 
-    function esc(v) { return `"${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`; }
+    function esc(v) { return `"${String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`; }
 
     function labelStr(device) {
       return `id=${esc(device.id)},name=${esc(device.name)},room=${esc(device.room)},ip=${esc(device.ip)}`;
