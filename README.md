@@ -323,15 +323,11 @@ docker run --rm --network=host -v /path/to/config.json:/config/config.json:ro ec
 将来 IP が変わっても `0x83` をキーに自動再探索できる可能性があります。
 現時点では **各エアコンのIPをDHCP固定** にすることを推奨します。
 
----
+## 読み取り専用
 
-### 読み取り専用
-
-このWebアプリは **ECHONET Lite GET のみ** を送信します。
+このアプリケーションは **ECHONET Lite GET のみ** を送信します。
 SET、SetC、SetI、Write などの制御コマンドは一切実装されていません。
 ON/OFF変更、設定温度変更、運転モード変更はできません。
-
----
 
 ## 仕組み
 
@@ -343,4 +339,4 @@ ON/OFF変更、設定温度変更、運転モード変更はできません。
   - `src/inspect.js` — EPC読み取りCLI (Air Conditioner 0x013001)
   - `src/poller.js` — 継続的ポーリングエンジン
   - `src/server.js` — Express Webサーバ (API + UI + Prometheus)
-  - `config.json` — デバイス設定
+  - `config.json` — デバイス設定 (Git管理外。`config.example.json` をコピーして作成)
