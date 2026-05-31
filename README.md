@@ -251,12 +251,7 @@ environment:
 docker pull ghcr.io/whitenoise0000/echonet-ac-probe:latest
 ```
 
-GitHub Container Registry に公開されています。
-Private package のため pull には認証が必要です:
-
-```console
-echo $GITHUB_TOKEN | docker login ghcr.io -u <user> --password-stdin
-```
+GitHub Container Registry で公開されています。認証なしで pull 可能です。
 
 #### compose.yaml 例
 
