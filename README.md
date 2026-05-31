@@ -243,24 +243,72 @@ environment:
 | `nocria_ac_outdoor_temperature_c` | gauge | 外気温度 (°C、無効値は出力しない) |
 | `nocria_ac_outdoor_temperature_valid` | gauge | 外気温度有効性 (1=有効, 0=取得不可) |
 
-### TrueNAS Custom App デプロイ
+### Docker / TrueNAS Custom App デプロイ
 
-Dockerfile 例:
+#### ビルド済みイメージ
 
-```dockerfile
-FROM node:20-alpine
-WORKDIR /app
-COPY package.json ./
-RUN npm install --production
-COPY . .
-EXPOSE 3000
-CMD ["node", "src/server.js"]
+```console
+docker pull ghcr.io/whitenoise0000/echonet-ac-probe:latest
 ```
 
-注意点:
-- `--net=host` での起動を推奨 (ホストのUDP/3610に直接アクセス)。通常のUDP送受信ではLinux capabilities は不要な場合が多い
-- `config.json` は外部 volume マウント推奨 (`/app/config.json`)
-- 環境変数による上書きを検討する場合は `config.json` の値を process.env で読み替え
+GitHub Container Registry に公開されています。
+Private package のため pull には認証が必要です:
+
+```console
+echo $GITHUB_TOKEN | docker login ghcr.io -u <user> --password-stdin
+```
+
+#### compose.yaml 例
+
+`compose.yaml.example` を参照してください:
+
+```yaml
+services:
+  echonet-ac-probe:
+    image: ghcr.io/whitenoise0000/echonet-ac-probe:latest
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      - CONFIG_PATH=/config/config.json
+      - TZ=Asia/Tokyo
+    volumes:
+      - ./config.json:/config/config.json:ro
+```
+
+#### 環境変数だけで動かす例 (config.json不要)
+
+```yaml
+services:
+  echonet-ac-probe:
+    image: ghcr.io/whitenoise0000/echonet-ac-probe:latest
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      - LOCAL_ADDRESS=192.168.0.144
+      - HTTP_PORT=3000
+      - DEVICES_JSON=[{"ip":"192.168.0.122","id":"study-3f","name":"3F書斎"},{"ip":"192.168.0.101"}]
+      - TZ=Asia/Tokyo
+```
+
+#### ローカルビルド
+
+```console
+docker build -t echonet-ac-probe:test .
+docker run --rm echonet-ac-probe:test npm test
+docker run --rm --network=host -v /path/to/config.json:/config/config.json:ro echonet-ac-probe:test
+```
+
+#### TrueNAS 設定の要点
+
+| 項目 | 設定 |
+|---|---|
+| イメージ | `ghcr.io/whitenoise0000/echonet-ac-probe:latest` |
+| ネットワーク | **Host Networking** (UDP/3610 マルチキャストのため) |
+| ボリューム | `/mnt/pool/path/config.json` → `/config/config.json` (read-only) |
+| 環境変数 | `TZ=Asia/Tokyo`, `CONFIG_PATH=/config/config.json` |
+| 特権昇格 | 不要 (通常のUDP送受信のみ) |
+
+`/config/config.json` は read-only でマウントしてください。アプリは設定ファイルに書き込みを行いません。
 
 ### IP変動への備え
 

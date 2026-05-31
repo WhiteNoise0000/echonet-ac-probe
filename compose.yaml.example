@@ -1,0 +1,23 @@
+services:
+  # ECHONET Lite Monitor for Fujitsu Nocria air conditioners
+  # Read-only. No SET commands are implemented.
+  echonet-ac-probe:
+    # Pre-built image from GitHub Container Registry
+    image: ghcr.io/whitenoise0000/echonet-ac-probe:latest
+    # Host network mode: required for UDP multicast (224.0.23.0:3610)
+    # When using host network, do NOT specify ports.
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      # Path to config file (mounted as read-only volume below)
+      - CONFIG_PATH=/config/config.json
+      - TZ=Asia/Tokyo
+      # Alternatively, configure entirely via environment variables
+      # (comment out CONFIG_PATH above and uncomment below):
+      # - LOCAL_ADDRESS=192.168.x.xxx
+      # - HTTP_PORT=3000
+      # - DEVICES_JSON=[{"ip":"192.168.0.122","id":"study-3f","name":"3F書斎"},{"ip":"192.168.0.101","id":"room-101"}]
+    volumes:
+      # Mount config file read-only.
+      # On TrueNAS: /mnt/pool/path/config.json:/config/config.json:ro
+      - ./config.json:/config/config.json:ro
