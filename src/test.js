@@ -88,6 +88,15 @@ assert(notInMap.includes(0xBA), 'capability: 0xBA in unsupported list');
 assert(!SAFE.includes(0xBA), 'capability: 0xBA excluded from SAFE fallback');
 assert(SAFE.includes(0x80), 'capability: 0x80 in SAFE fallback');
 
+// ---- poller shape ----
+const { createPoller } = require('./poller');
+const p = createPoller('127.0.0.1', 2000);
+assert(typeof p.init === 'function', 'poller: init is a function');
+assert(typeof p.pollAll === 'function', 'poller: pollAll is a function');
+assert(typeof p.close === 'function', 'poller: close is a function');
+// close without init should not throw
+p.close();
+
 // ---- config ----
 (function testConfig() {
   const saveCfg = process.env.CONFIG_PATH;

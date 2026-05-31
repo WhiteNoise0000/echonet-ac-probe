@@ -121,6 +121,13 @@ function createPoller(localAddress, requestTimeoutMs) {
     return result;
   }
 
+  async function init() {
+    const bindArgs = localAddress ? [PORT, localAddress] : [PORT];
+    await new Promise((resolve, reject) => {
+      sock.bind(...bindArgs, (err) => { if (err) reject(err); else resolve(); });
+    });
+  }
+
   async function pollAll(devices) {
     const status = {};
     for (const device of devices) {
