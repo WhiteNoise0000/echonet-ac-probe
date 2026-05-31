@@ -34,7 +34,7 @@ function createPoller(localAddress, requestTimeoutMs) {
       }, requestTimeoutMs);
       pending = {
         targetIP, tid,
-        resolve: (r) => { clearTimeout(timer); resolve(r); },
+        resolve: (r) => { clearTimeout(timer); pending = null; resolve(r); },
       };
       sock.send(req, 0, req.length, PORT, targetIP, (err) => {
         if (err) { clearTimeout(timer); pending = null; resolve(null); }
