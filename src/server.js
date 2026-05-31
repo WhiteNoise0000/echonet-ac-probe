@@ -1,14 +1,11 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
-
-const configPath = path.resolve(__dirname, '..', 'config.json');
-const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-
-const { createPoller, EPC_LIST } = require('./poller');
-const { EPC_NAME, hex, interpret, isValidValue } = require('./echonet');
+const { loadConfig } = require('./config');
+const { createPoller } = require('./poller');
+const { interpret } = require('./echonet');
 
 const STALE_MS = 90000;
+const config = loadConfig();
 
 async function main() {
   const poller = createPoller(config.localAddress, config.requestTimeoutMs);
@@ -42,12 +39,13 @@ async function main() {
 
   app.listen(config.httpPort, () => {
     console.log(`ECHONET Lite Web Server running on http://0.0.0.0:${config.httpPort}`);
-    console.log(`  Devices: ${config.devices.map(d => `${d.room} (${d.ip})`).join(', ')}`);
+    console.log(`  Devices: ${config.devices.map(d => `${d.name} (${d.ip})`).join(', ')}`);
     console.log(`  Poll interval: ${config.pollIntervalMs}ms, stale threshold: ${STALE_MS}ms`);
     console.log(`  Read-only mode (no SET commands)`);
   });
 
   poll().then(() => setInterval(poll, config.pollIntervalMs));
+
   app.use(express.static(path.resolve(__dirname, 'public')));
 
   app.get('/health', (_req, res) => {
@@ -65,6 +63,8 @@ async function main() {
       const s = latestStatus[device.ip] || {};
       const lsa = s.lastSuccessAt || 0;
       data[device.ip] = {
+        name: device.name,
+        id: device.id,
         room: device.room,
         ip: device.ip,
         timestamp: s.timestamp || null,
@@ -85,10 +85,11 @@ async function main() {
     function esc(v) { return `"${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`; }
 
     function labelStr(device) {
-      return `room=${esc(device.room)},ip=${esc(device.ip)}`;
+      let l = `room=${esc(device.room)},ip=${esc(device.ip)}`;
+      if (device.name && device.name !== device.room) l += `,name=${esc(device.name)}`;
+      return l;
     }
 
-    // up + stale
     lines.push('# HELP nocria_ac_up Device reachability (1=up, 0=down)');
     lines.push('# TYPE nocria_ac_up gauge');
     lines.push('# HELP nocria_ac_stale Data is stale (>90s since last success)');
@@ -104,7 +105,6 @@ async function main() {
       lines.push(`nocria_ac_stale{${l}} ${stale ? 1 : 0}`);
     }
 
-    // last_success_timestamp_seconds
     lines.push('# HELP nocria_ac_last_success_timestamp_seconds Unix timestamp of last successful poll');
     lines.push('# TYPE nocria_ac_last_success_timestamp_seconds gauge');
     for (const device of config.devices) {
@@ -114,7 +114,6 @@ async function main() {
       lines.push(`nocria_ac_last_success_timestamp_seconds{${labelStr(device)}} ${(lsa / 1000).toFixed(3)}`);
     }
 
-    // operation_status
     lines.push('# HELP nocria_ac_operation_status Operation status (1=ON, 0=OFF)');
     lines.push('# TYPE nocria_ac_operation_status gauge');
     for (const device of config.devices) {
@@ -124,7 +123,6 @@ async function main() {
       if (v) lines.push(`nocria_ac_operation_status{${labelStr(device)}} ${v.dec === 'ON' ? 1 : 0}`);
     }
 
-    // error_status
     lines.push('# HELP nocria_ac_error_status Error status (1=fault, 0=normal)');
     lines.push('# TYPE nocria_ac_error_status gauge');
     for (const device of config.devices) {
@@ -134,94 +132,68 @@ async function main() {
       if (v) lines.push(`nocria_ac_error_status{${labelStr(device)}} ${v.dec.startsWith('異常あり') ? 1 : 0}`);
     }
 
-    // instant_power_w
     lines.push('# HELP nocria_ac_instant_power_w Instantaneous power in watts');
     lines.push('# TYPE nocria_ac_instant_power_w gauge');
     for (const device of config.devices) {
       const s = latestStatus[device.ip];
       if (!s) continue;
       const v = s.values && s.values[0x84];
-      if (v && v.valid) {
-        const n = parseFloat(v.dec);
-        if (!isNaN(n)) lines.push(`nocria_ac_instant_power_w{${labelStr(device)}} ${n}`);
-      }
+      if (v && v.valid) { const n = parseFloat(v.dec); if (!isNaN(n)) lines.push(`nocria_ac_instant_power_w{${labelStr(device)}} ${n}`); }
     }
 
-    // total_energy_kwh
     lines.push('# HELP nocria_ac_total_energy_kwh Cumulative energy in kWh');
     lines.push('# TYPE nocria_ac_total_energy_kwh gauge');
     for (const device of config.devices) {
       const s = latestStatus[device.ip];
       if (!s) continue;
       const v = s.values && s.values[0x85];
-      if (v && v.valid) {
-        const n = parseFloat(v.dec);
-        if (!isNaN(n)) lines.push(`nocria_ac_total_energy_kwh{${labelStr(device)}} ${n}`);
-      }
+      if (v && v.valid) { const n = parseFloat(v.dec); if (!isNaN(n)) lines.push(`nocria_ac_total_energy_kwh{${labelStr(device)}} ${n}`); }
     }
 
-    // set_temperature_c
     lines.push('# HELP nocria_ac_set_temperature_c Set temperature in Celsius');
     lines.push('# TYPE nocria_ac_set_temperature_c gauge');
     for (const device of config.devices) {
       const s = latestStatus[device.ip];
       if (!s) continue;
       const v = s.values && s.values[0xB3];
-      if (v && v.valid) {
-        const n = parseFloat(v.dec);
-        if (!isNaN(n)) lines.push(`nocria_ac_set_temperature_c{${labelStr(device)}} ${n}`);
-      }
+      if (v && v.valid) { const n = parseFloat(v.dec); if (!isNaN(n)) lines.push(`nocria_ac_set_temperature_c{${labelStr(device)}} ${n}`); }
     }
 
-    // room_temperature_c
     lines.push('# HELP nocria_ac_room_temperature_c Room temperature in Celsius');
     lines.push('# TYPE nocria_ac_room_temperature_c gauge');
     for (const device of config.devices) {
       const s = latestStatus[device.ip];
       if (!s) continue;
       const v = s.values && s.values[0xBB];
-      if (v && v.valid) {
-        const n = parseFloat(v.dec);
-        if (!isNaN(n)) lines.push(`nocria_ac_room_temperature_c{${labelStr(device)}} ${n}`);
-      }
+      if (v && v.valid) { const n = parseFloat(v.dec); if (!isNaN(n)) lines.push(`nocria_ac_room_temperature_c{${labelStr(device)}} ${n}`); }
     }
 
-    // room_humidity_percent
     lines.push('# HELP nocria_ac_room_humidity_percent Room humidity in percent');
     lines.push('# TYPE nocria_ac_room_humidity_percent gauge');
     for (const device of config.devices) {
       const s = latestStatus[device.ip];
       if (!s) continue;
       const v = s.values && s.values[0xBA];
-      if (v && v.valid) {
-        const n = parseFloat(v.dec);
-        if (!isNaN(n)) lines.push(`nocria_ac_room_humidity_percent{${labelStr(device)}} ${n}`);
-      }
+      if (v && v.valid) { const n = parseFloat(v.dec); if (!isNaN(n)) lines.push(`nocria_ac_room_humidity_percent{${labelStr(device)}} ${n}`); }
     }
 
-    // outdoor_temperature_c + valid
     lines.push('# HELP nocria_ac_outdoor_temperature_c Outdoor temperature in Celsius');
     lines.push('# TYPE nocria_ac_outdoor_temperature_c gauge');
-    lines.push('# HELP nocria_ac_outdoor_temperature_valid Whether outdoor temperature data is valid (1=valid, 0=unavailable)');
+    lines.push('# HELP nocria_ac_outdoor_temperature_valid Whether outdoor temperature data is valid');
     lines.push('# TYPE nocria_ac_outdoor_temperature_valid gauge');
     for (const device of config.devices) {
       const s = latestStatus[device.ip];
       if (!s) continue;
       const v = s.values && s.values[0xBE];
       if (v) {
-        const tempValid = v.valid ? 1 : 0;
-        lines.push(`nocria_ac_outdoor_temperature_valid{${labelStr(device)}} ${tempValid}`);
-        if (v.valid) {
-          const n = parseFloat(v.dec);
-          if (!isNaN(n)) lines.push(`nocria_ac_outdoor_temperature_c{${labelStr(device)}} ${n}`);
-        }
+        lines.push(`nocria_ac_outdoor_temperature_valid{${labelStr(device)}} ${v.valid ? 1 : 0}`);
+        if (v.valid) { const n = parseFloat(v.dec); if (!isNaN(n)) lines.push(`nocria_ac_outdoor_temperature_c{${labelStr(device)}} ${n}`); }
       }
     }
 
     lines.push('');
     res.send(lines.join('\n'));
   });
-
 }
 
 main().catch((err) => {

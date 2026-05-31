@@ -12,7 +12,7 @@ h1 { font-size: 1.4rem; margin-bottom: 12px; color: #1a1a2e; }
 .card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); position: relative; }
 .card.stale { opacity: 0.55; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
-.card-header .room { font-weight: 700; font-size: 1.3rem; }
+.card-header .name { font-weight: 700; font-size: 1.3rem; }
 .card-header .ip { font-size: .75rem; color: #999; margin-top: 2px; }
 .card-header .right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
@@ -48,6 +48,7 @@ function cardHTML(d) {
   const lsa = d.lastSuccessAt ? new Date(d.lastSuccessAt).toLocaleTimeString('ja-JP') : '—';
   const stale = !!d.stale;
   const onoff = (v[0x80] && v[0x80].dec === 'ON');
+  const displayName = d.name || d.room || d.id || d.ip;
 
   let dotClass = 'dot-off';
   if (ts === '—') dotClass = 'dot-stale';
@@ -59,7 +60,7 @@ function cardHTML(d) {
       if (v[epc].valid === false) return '—';
       return v[epc].dec;
     }
-    if (e[epc]) return '—'; // Get_SNA → show —
+    if (e[epc]) return '—';
     return '…';
   }
 
@@ -69,7 +70,7 @@ function cardHTML(d) {
   return `<div class="card${stale ? ' stale' : ''}">
     <div class="card-header">
       <div>
-        <div class="room">${d.room}</div>
+        <div class="name">${displayName}</div>
         <div class="ip">${d.ip}</div>
       </div>
       <div class="right">

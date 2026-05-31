@@ -41,6 +41,8 @@ assert(!bmp.includes(0xBA), 'bitmap should NOT include 0xBA (humidity, not suppo
 assert(interpret(0x80, Buffer.from([0x30])) === 'ON', 'operating status ON');
 assert(interpret(0x80, Buffer.from([0x31])) === 'OFF', 'operating status OFF');
 
+assert(interpret(0x83, Buffer.from([0x01, 0x02, 0x03])) === '01 02 03', 'identification number raw hex');
+assert(interpret(0x8A, Buffer.from([0x00, 0x00, 0x01])) === '00 00 01', 'manufacturer code raw hex');
 assert(interpret(0x84, Buffer.from([0x00, 0x5A])) === '90 W', 'instant power 90W');
 assert(interpret(0x85, Buffer.from([0x00, 0x00, 0x33, 0x3E])) === '13.118 kWh', 'cumulative power 13.118kWh');
 

@@ -158,11 +158,12 @@ netsh advfirewall firewall add rule name="EL-Probe" protocol=UDP dir=in localpor
 npm start        # or: npm run dev
 ```
 
-設定は `config.json` で行います。
+設定は `config.json` または環境変数で行います。
 `config.example.json` をコピーして編集してください。
 `config.json` は `.gitignore` に含まれているため誤 commit を防げます。
+`CONFIG_PATH` 環境変数で設定ファイルのパスを変更できます。
 
-### 設定 (config.example.json)
+### config.json
 
 ```json
 {
@@ -171,19 +172,40 @@ npm start        # or: npm run dev
   "requestTimeoutMs": 5000,
   "httpPort": 3000,
   "devices": [
-    { "ip": "192.168.x.101", "room": "101" },
-    { "ip": "192.168.x.102", "room": "102" }
+    { "ip": "192.168.0.122", "id": "study-3f", "name": "3F書斎" },
+    { "ip": "192.168.0.101", "room": "101" }
   ]
 }
 ```
 
-| 項目 | 説明 |
+#### devices の各フィールド
+
+| 項目 | 必須 | 説明 |
+|---|---|---|
+| `ip` | ✅ | エアコンのIPアドレス |
+| `id` | | 安定識別子。Prometheusラベルとして使われる。未指定時は `room`→`ip` にfallback |
+| `name` | | UI表示名。未指定時は `room`→`id`→`ip` にfallback |
+| `room` | | 従来の互換フィールド。`id`/`name` 未指定時にfallback先として使われる |
+
+#### 環境変数による上書き
+
+| 変数名 | 説明 |
 |---|---|
-| `localAddress` | 自PCのLAN側IPv4アドレス (必須) |
-| `pollIntervalMs` | ポーリング間隔 (デフォルト 30000) |
-| `requestTimeoutMs` | 1リクエストあたりのタイムアウト |
-| `httpPort` | Webサーバのポート |
-| `devices` | 監視対象エアコンの一覧。`ip` と `room` 名を指定 |
+| `CONFIG_PATH` | config.json のパス (デフォルト: `./config.json`) |
+| `LOCAL_ADDRESS` | 送信元IPv4アドレス |
+| `HTTP_PORT` | Webサーバのポート |
+| `POLL_INTERVAL_MS` | ポーリング間隔 (ms) |
+| `REQUEST_TIMEOUT_MS` | 1リクエストあたりのタイムアウト (ms) |
+| `DEVICES_JSON` | devices 配列をJSON文字列で直接指定 (config.jsonより優先) |
+
+TrueNAS / Docker Compose での使用例:
+
+```yaml
+environment:
+  LOCAL_ADDRESS: "192.168.0.144"
+  HTTP_PORT: "3000"
+  DEVICES_JSON: '[{"ip":"192.168.0.122","id":"study-3f","name":"3F書斎"},{"ip":"192.168.0.101"}]'
+```
 
 ### API
 
@@ -230,6 +252,16 @@ CMD ["node", "src/server.js"]
 - `--net=host` での起動を推奨 (ホストのUDP/3610に直接アクセス)。通常のUDP送受信ではLinux capabilities は不要な場合が多い
 - `config.json` は外部 volume マウント推奨 (`/app/config.json`)
 - 環境変数による上書きを検討する場合は `config.json` の値を process.env で読み替え
+
+### IP変動への備え
+
+各エアコンは EPC `0x83` (識別番号) を保持しており、`npm run inspect` で確認できます。
+4台の `0x83` が各々一意であることを確認済みです。
+
+将来 IP が変わっても `0x83` をキーに自動再探索できる可能性があります。
+現時点では **各エアコンのIPをDHCP固定** にすることを推奨します。
+
+---
 
 ### 読み取り専用
 

@@ -1,7 +1,7 @@
 const dgram = require('dgram');
 const { PORT, EOJ_AC, EPC_NAME, hex, buildGet, parseEL, interpret, isValidValue } = require('./echonet');
 
-const EPC_LIST = [0x80, 0x88, 0x84, 0x85, 0xB0, 0xB3, 0xBA, 0xBB, 0xBE];
+const EPC_LIST = [0x80, 0x83, 0x88, 0x84, 0x85, 0x8A, 0xB0, 0xB3, 0xBA, 0xBB, 0xBE];
 
 function createPoller(localAddress, requestTimeoutMs) {
   const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true });

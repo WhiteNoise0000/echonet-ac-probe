@@ -3,9 +3,11 @@ const EOJ_AC = 0x013001;
 
 const EPC_NAME = {
   0x80: '動作状態 (Operating status)',
+  0x83: '識別番号 (Identification number)',
   0x84: '瞬時消費電力 (Instantaneous power) [W]',
   0x85: '積算消費電力量 (Cumulative power) [0.001kWh]',
   0x88: '異常発生状態 (Error status)',
+  0x8A: 'メーカーコード (Manufacturer code)',
   0xB0: '運転モード (Operation mode)',
   0xB3: '設定温度 (Set temperature)',
   0xBA: '室内湿度 (Indoor humidity)',
@@ -104,6 +106,8 @@ function interpret(epc, edt) {
     case 0x80:
       if (edt.length >= 1) return edt[0] === 0x30 ? 'ON' : 'OFF';
       return h;
+    case 0x83:
+      return h;
     case 0x84:
       if (edt.length === 2) return `${edt.readUInt16BE(0)} W`;
       if (edt.length >= 4) return `${edt.readUInt32BE(0)} W`;
@@ -112,6 +116,8 @@ function interpret(epc, edt) {
       if (edt.length >= 4) return `${(edt.readUInt32BE(0) * 0.001).toFixed(3)} kWh`;
       if (edt.length === 2) return `${(edt.readUInt16BE(0) * 0.001).toFixed(3)} kWh`;
       return `${h} (?B)`;
+    case 0x8A:
+      return h;
     case 0x88:
       if (edt.length >= 1) return edt[0] === 0x41 ? '異常あり (Fault)' : '異常なし (Normal)';
       return h;
