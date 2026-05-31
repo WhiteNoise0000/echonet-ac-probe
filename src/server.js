@@ -85,9 +85,7 @@ async function main() {
     function esc(v) { return `"${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`; }
 
     function labelStr(device) {
-      let l = `room=${esc(device.room)},ip=${esc(device.ip)}`;
-      if (device.name && device.name !== device.room) l += `,name=${esc(device.name)}`;
-      return l;
+      return `id=${esc(device.id)},name=${esc(device.name)},room=${esc(device.room)},ip=${esc(device.ip)}`;
     }
 
     lines.push('# HELP nocria_ac_up Device reachability (1=up, 0=down)');

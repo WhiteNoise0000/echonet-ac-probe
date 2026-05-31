@@ -4,7 +4,7 @@
   "requestTimeoutMs": 5000,
   "httpPort": 3000,
   "devices": [
-    { "ip": "192.168.0.122", "id": "study-3f", "room": "122", "name": "3F書斎" },
-    { "ip": "192.168.0.101", "room": "101" }
+    { "ip": "192.168.0.122", "id": "study-3f", "name": "3F書斎" },
+    { "ip": "192.168.0.101", "id": "room-101", "name": "リビング" }
   ]
 }

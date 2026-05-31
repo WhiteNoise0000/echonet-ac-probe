@@ -184,8 +184,8 @@ npm start        # or: npm run dev
 |---|---|---|
 | `ip` | ✅ | エアコンのIPアドレス |
 | `id` | | 安定識別子。Prometheusラベルとして使われる。未指定時は `room`→`ip` にfallback |
-| `name` | | UI表示名。未指定時は `room`→`id`→`ip` にfallback |
-| `room` | | 従来の互換フィールド。`id`/`name` 未指定時にfallback先として使われる |
+| `name` | | UI表示名・Prometheus `name` ラベル。未指定時は `room`→`id`→`ip` にfallback |
+| `room` | | 後方互換用。`id` 未指定時にfallback。Prometheus `room` ラベルとしても出力継続 |
 
 #### 環境変数による上書き
 
@@ -219,20 +219,29 @@ environment:
 
 ### Prometheus メトリクス
 
-| メトリクス名 | 型 | ラベル | 説明 |
-|---|---|---|---|
-| `nocria_ac_up` | gauge | `room`, `ip` | 1=応答あり, 0=ダウン |
-| `nocria_ac_stale` | gauge | `room`, `ip` | 1=stale (90秒以上未更新) |
-| `nocria_ac_last_success_timestamp_seconds` | gauge | `room`, `ip` | 最終成功取得のUnix時刻 |
-| `nocria_ac_operation_status` | gauge | `room`, `ip` | 1=ON, 0=OFF |
-| `nocria_ac_error_status` | gauge | `room`, `ip` | 1=異常あり, 0=正常 |
-| `nocria_ac_instant_power_w` | gauge | `room`, `ip` | 瞬時消費電力 (W) |
-| `nocria_ac_total_energy_kwh` | gauge | `room`, `ip` | 積算消費電力量 (kWh) |
-| `nocria_ac_set_temperature_c` | gauge | `room`, `ip` | 設定温度 (°C) |
-| `nocria_ac_room_temperature_c` | gauge | `room`, `ip` | 室内温度 (°C) |
-| `nocria_ac_room_humidity_percent` | gauge | `room`, `ip` | 室内湿度 (%) |
-| `nocria_ac_outdoor_temperature_c` | gauge | `room`, `ip` | 外気温度 (°C、無効値は出力しない) |
-| `nocria_ac_outdoor_temperature_valid` | gauge | `room`, `ip` | 外気温度有効性 (1=有効, 0=取得不可) |
+全メトリクスに以下のラベルが付与されます:
+
+| ラベル | 説明 |
+|---|---|
+| `id` | 安定識別子 (`device.id` → `room` → `ip` の順に決定) |
+| `name` | 表示名 (`device.name` → `room` → `id` → `ip`) |
+| `room` | 後方互換用 (`device.room` → `id` → `ip`)。`id` と同じ値になる場合あり |
+| `ip` | IPアドレス |
+
+| メトリクス名 | 型 | 説明 |
+|---|---|---|
+| `nocria_ac_up` | gauge | 1=応答あり, 0=ダウン |
+| `nocria_ac_stale` | gauge | 1=stale (90秒以上未更新) |
+| `nocria_ac_last_success_timestamp_seconds` | gauge | 最終成功取得のUnix時刻 |
+| `nocria_ac_operation_status` | gauge | 1=ON, 0=OFF |
+| `nocria_ac_error_status` | gauge | 1=異常あり, 0=正常 |
+| `nocria_ac_instant_power_w` | gauge | 瞬時消費電力 (W) |
+| `nocria_ac_total_energy_kwh` | gauge | 積算消費電力量 (kWh) |
+| `nocria_ac_set_temperature_c` | gauge | 設定温度 (°C) |
+| `nocria_ac_room_temperature_c` | gauge | 室内温度 (°C) |
+| `nocria_ac_room_humidity_percent` | gauge | 室内湿度 (%) |
+| `nocria_ac_outdoor_temperature_c` | gauge | 外気温度 (°C、無効値は出力しない) |
+| `nocria_ac_outdoor_temperature_valid` | gauge | 外気温度有効性 (1=有効, 0=取得不可) |
 
 ### TrueNAS Custom App デプロイ
 
