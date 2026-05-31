@@ -5,44 +5,101 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ノクリア 状態モニター</title>
 <style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface-stale: #1e1e28;
+  --text: #e0e0e0;
+  --text-dim: #999;
+  --text-muted: #666;
+  --label: #777;
+  --border: #222;
+  --border-stale: #3a3a2a;
+  --bar-on: #34c759;
+  --bar-off: #555;
+  --bar-stale: #5a5a3a;
+  --badge-on-bg: #1a3a1a;
+  --badge-on-fg: #34c759;
+  --badge-off-bg: #2a2a2a;
+  --badge-off-fg: #999;
+  --badge-stale-bg: #2a2a1a;
+  --badge-stale-fg: #aa0;
+  --val-temp: #69f;
+  --val-power: #fa0;
+  --val-energy: #8cf;
+  --val-err: #f44;
+  --val-ok: #4c4;
+  --header-fg: #fff;
+  --stale-label-bg: #2a2a1a;
+  --stale-label-fg: #aa0;
+  --icon-opacity: 0.85;
+  --stale-border: #5a5a3a;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f0f2f5;
+    --surface: #fff;
+    --surface-stale: #faf8f0;
+    --text: #333;
+    --text-dim: #777;
+    --text-muted: #aaa;
+    --label: #999;
+    --border: #eee;
+    --border-stale: #e8ddb0;
+    --bar-on: #34c759;
+    --bar-off: #bbb;
+    --bar-stale: #c8b84a;
+    --badge-on-bg: #e8f8e8;
+    --badge-on-fg: #2a8a3a;
+    --badge-off-bg: #f0f0f0;
+    --badge-off-fg: #888;
+    --badge-stale-bg: #f8f0d0;
+    --badge-stale-fg: #886a10;
+    --val-temp: #15a;
+    --val-power: #c80;
+    --val-energy: #07c;
+    --val-err: #d33;
+    --val-ok: #2a8;
+    --header-fg: #1a1a2e;
+    --stale-label-bg: #f8f0d0;
+    --stale-label-fg: #886a10;
+    --stale-border: #c8b84a;
+  }
+}
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; padding: 16px; min-height: 100vh; }
-h1 { font-size: 1.3rem; margin-bottom: 16px; color: #8888aa; letter-spacing: .05em; font-weight: 500; display: flex; align-items: center; gap: 8px; }
-h1 span { color: #666; font-size: .85rem; font-weight: 400; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 16px; min-height: 100vh; transition: background .2s; }
+h1 { font-size: 1.3rem; margin-bottom: 16px; color: var(--text-dim); letter-spacing: .05em; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+h1 span { color: var(--text-muted); font-size: .85rem; font-weight: 400; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
-.card { background: #1a1a2e; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.3); transition: opacity .3s; }
-.card.stale { opacity: .45; }
+.card { background: var(--surface); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.3); transition: box-shadow .3s; }
+.card.stale { background: var(--surface-stale); outline: 1px solid var(--stale-border); outline-offset: -1px; }
 .card-bar { height: 4px; transition: background .5s; }
-.bar-on { background: #34c759; }
-.bar-off { background: #555; }
-.bar-stale { background: #3a3a3a; }
+.bar-on { background: var(--bar-on); }
+.bar-off { background: var(--bar-off); }
+.bar-stale { background: var(--bar-stale); }
 .card-body { padding: 16px; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
 .card-header .left { display: flex; flex-direction: column; gap: 2px; }
-.card-header .name { font-weight: 700; font-size: 1.2rem; color: #fff; letter-spacing: .02em; }
-.card-header .ip { font-size: .7rem; color: #666; }
+.card-header .name { font-weight: 700; font-size: 1.2rem; color: var(--header-fg); letter-spacing: .02em; }
+.card-header .ip { font-size: .7rem; color: var(--text-muted); }
 .card-header .right { display: flex; align-items: center; gap: 8px; }
 .status-badge { font-size: .65rem; font-weight: 600; padding: 2px 10px; border-radius: 20px; letter-spacing: .03em; }
-.badge-on { background: #1a3a1a; color: #34c759; }
-.badge-off { background: #2a2a2a; color: #999; }
-.badge-stale { background: #333; color: #666; }
-.row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: .85rem; border-bottom: 1px solid #222; }
+.badge-on { background: var(--badge-on-bg); color: var(--badge-on-fg); }
+.badge-off { background: var(--badge-off-bg); color: var(--badge-off-fg); }
+.badge-stale { background: var(--badge-stale-bg); color: var(--badge-stale-fg); }
+.row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: .85rem; border-bottom: 1px solid var(--border); }
 .row:last-of-type { border-bottom: none; }
-.row .label { color: #777; display: flex; align-items: center; gap: 6px; }
-.row .label .icon { font-size: .95rem; }
-.row .value { font-weight: 600; text-align: right; color: #ccc; }
-.value-temp { font-size: 1rem; color: #69f; }
-.value-power { color: #fa0; }
-.value-energy { color: #8cf; }
-.value-error { color: #f44; }
-.value-ok { color: #4c4; }
-.value-mode { font-weight: 500; }
-.timestamp { font-size: .7rem; color: #555; margin-top: 10px; text-align: right; }
-.stale-label { color: #888; background: #2a2a2a; border-radius: 4px; padding: 1px 8px; font-size: .65rem; }
-@media (max-width: 480px) {
-  .grid { grid-template-columns: 1fr; }
-  body { padding: 10px; }
-}
+.row .label { color: var(--label); display: flex; align-items: center; gap: 6px; }
+.row .label .icon { font-size: .95rem; opacity: var(--icon-opacity); }
+.row .value { font-weight: 600; text-align: right; color: var(--text); }
+.value-temp { color: var(--val-temp); }
+.value-power { color: var(--val-power); }
+.value-energy { color: var(--val-energy); }
+.value-error { color: var(--val-err); }
+.value-ok { color: var(--val-ok); }
+.value-na { color: var(--text-muted); font-weight: 400; }
+.value-loading { color: var(--text-muted); font-weight: 400; opacity: .4; }
+.timestamp { font-size: .7rem; color: var(--text-muted); margin-top: 10px; text-align: right; }
 </style>
 </head>
 <body>
@@ -64,41 +121,44 @@ const EPCS = [
 function cardHTML(d) {
   const v = d.values || {};
   const e = d.errors || {};
-  const ts = d.timestamp ? new Date(d.timestamp).toLocaleTimeString('ja-JP') : null;
-  const lsa = d.lastSuccessAt ? new Date(d.lastSuccessAt).toLocaleTimeString('ja-JP') : '—';
   const stale = !!d.stale;
   const onoff = v[0x80] && v[0x80].dec === 'ON';
   const name = d.name || d.room || d.id || d.ip;
-  const hasData = !!ts;
+  const lsa = d.lastSuccessAt || 0;
+  const tsFormatted = lsa ? new Date(lsa).toLocaleTimeString('ja-JP') : null;
 
   let barClass = 'bar-stale', badgeClass = 'badge-stale', badgeText = '—';
-  if (!hasData) { badgeText = 'waiting'; }
-  else if (stale) { badgeText = 'stale'; }
+  if (!lsa) { badgeText = '未取得'; badgeClass = 'badge-stale'; }
+  else if (stale) { badgeText = 'stale'; badgeClass = 'badge-stale'; }
   else if (onoff) { barClass = 'bar-on'; badgeClass = 'badge-on'; badgeText = 'ON'; }
   else { barClass = 'bar-off'; badgeClass = 'badge-off'; badgeText = 'OFF'; }
 
   function val(epc) {
     if (v[epc]) {
-      if (v[epc].valid === false) return '<span class="value">—</span>';
-      let extraClass = '';
+      if (v[epc].valid === false) return '<span class="value value-na">—</span>';
+      let cls = 'value';
       const dec = v[epc].dec;
-      if (dec.includes('°C')) extraClass = 'value-temp';
-      else if (dec.includes('W') && !dec.includes('kWh')) extraClass = 'value-power';
-      else if (dec.includes('kWh')) extraClass = 'value-energy';
-      else if (dec === '異常あり (Fault)' || dec === 'Fault') extraClass = 'value-error';
-      else if (dec === '異常なし (Normal)' || dec === 'Normal') extraClass = 'value-ok';
-      else if (dec === 'ON' || dec === 'OFF') extraClass = '';
-      else extraClass = 'value-mode';
-      return `<span class="value ${extraClass}">${dec}</span>`;
+      if (dec.includes('°C')) cls += ' value-temp';
+      else if (dec.includes('W') && !dec.includes('kWh')) cls += ' value-power';
+      else if (dec.includes('kWh')) cls += ' value-energy';
+      else if (dec === '異常あり (Fault)' || dec === 'Fault') cls += ' value-error';
+      else if (dec === '異常なし (Normal)' || dec === 'Normal') cls += ' value-ok';
+      else if (dec === 'ON' || dec === 'OFF') cls += '';
+      else cls += '';
+      return `<span class="${cls}">${dec}</span>`;
     }
-    if (e[epc]) return '<span class="value" style="color:#666">—</span>';
-    return '<span class="value" style="color:#444">…</span>';
+    if (e[epc]) return '<span class="value value-na">—</span>';
+    return '<span class="value value-loading">…</span>';
   }
 
-  const epcs = EPCS.map(e => `<div class="row">
+  const rows = EPCS.map(e => `<div class="row">
     <span class="label"><span class="icon">${e.icon}</span>${e.label}</span>
     ${val(e.epc)}
   </div>`).join('');
+
+  const tsLine = tsFormatted
+    ? `<div class="timestamp">${tsFormatted}${stale ? ' (stale)' : ''}</div>`
+    : '<div class="timestamp" style="color:var(--text-muted)">未取得</div>';
 
   return `<div class="card${stale ? ' stale' : ''}">
     <div class="card-bar ${barClass}"></div>
@@ -112,8 +172,8 @@ function cardHTML(d) {
           <span class="status-badge ${badgeClass}">${badgeText}</span>
         </div>
       </div>
-      ${epcs}
-      <div class="timestamp">${lsa}${stale ? ' <span class="stale-label">stale</span>' : ''}</div>
+      ${rows}
+      ${tsLine}
     </div>
   </div>`;
 }
