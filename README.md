@@ -294,7 +294,7 @@ services:
 
 ```console
 docker build -t echonet-ac-probe:test .
-docker run --rm echonet-ac-probe:test npm test
+docker run --rm echonet-ac-probe:test node src/test.js
 docker run --rm --network=host -v /path/to/config.json:/config/config.json:ro echonet-ac-probe:test
 ```
 
