@@ -73,6 +73,21 @@ assert(isValidValue(0xB3, Buffer.from([0x7E])) === true, 'set temp 126 valid (no
 assert(isValidValue(0x80, Buffer.from([0x30])) === true, 'operating status always valid');
 assert(isValidValue(0x84, Buffer.from([0x00, 0x01])) === true, 'instant power always valid');
 
+// ---- capability filtering ----
+const DESIRED = [0x80, 0x83, 0x84, 0x85, 0x88, 0x8A, 0xB0, 0xB3, 0xBA, 0xBB, 0xBE];
+const SAFE = [0x80, 0x83, 0x84, 0x85, 0x88, 0x8A, 0xB0, 0xB3, 0xBB, 0xBE]; // no 0xBA
+// Simulate bitmap with 0xBA missing (our real device response)
+const nocriaEDT2 = Buffer.from([0x1c, 0x0d, 0x09, 0x01, 0x0f, 0x01, 0x01, 0x80, 0x02, 0x03, 0x01, 0x01, 0x09, 0x11, 0x03, 0x0a, 0x03]);
+const bmpCodes = parseBitmap(nocriaEDT);
+const fromMap = DESIRED.filter(e => bmpCodes.includes(e));
+const notInMap = DESIRED.filter(e => !bmpCodes.includes(e));
+assert(fromMap.length === 10, 'capability: 10 EPCs supported by bitmap');
+assert(!fromMap.includes(0xBA), 'capability: 0xBA excluded from supported');
+assert(notInMap.includes(0xBA), 'capability: 0xBA in unsupported list');
+// 0x9F discovery failure → SAFE fallback
+assert(!SAFE.includes(0xBA), 'capability: 0xBA excluded from SAFE fallback');
+assert(SAFE.includes(0x80), 'capability: 0x80 in SAFE fallback');
+
 // ---- config ----
 (function testConfig() {
   const saveCfg = process.env.CONFIG_PATH;

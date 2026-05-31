@@ -332,7 +332,9 @@ ON/OFF変更、設定温度変更、運転モード変更はできません。
 
 - **依存ライブラリ最小限**: `probe.js` / `inspect.js` は Node.js 標準 `dgram` のみ。`server.js` は Express のみ追加。
 - **プロトコル**: ECHONET Lite (UDP/3610) の GET (ESV 0x62) のみ。SET 系は未実装。
-- **ポーリング最適化**: 11 EPC を1リクエストにまとめて送信 (opc=11)。応答は一括で処理。4台でも約2秒で完了。
+- **ポーリング最適化**: 11 EPC を1リクエストにまとめて送信。応答は一括で処理。4台でも約2秒で完了。
+- **動的EPC選択**: 起動時または初回poll時に各デバイスへ 0x9F (Getプロパティマップ) を送信し、対応EPCのみを一括GET対象にする。0xBA(室内湿度)のように未対応のEPCは自動除外される。0x9F取得失敗時は過去実績のあるSAFE EPC一覧にfallbackする。
+- **一括GET失敗時**: 応答が Get_SNA の場合は個別GETにfallbackする。全台全項目が未取得になる状態を防止。
 - **ファイル構成**:
   - `src/echonet.js` — 共通プロトコル関数 (buildGet, parseEL, interpret, parseBitmap など)
   - `src/probe.js` — 機器探索CLI (Node Profile 0x0EF001, EPC 0xD6)

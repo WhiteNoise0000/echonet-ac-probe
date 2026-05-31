@@ -83,6 +83,7 @@ async function main() {
     for (const device of config.devices) {
       const s = latestStatus[device.ip] || {};
       const lsa = s.lastSuccessAt || 0;
+      const cap = s.capability;
       data[device.ip] = {
         name: device.name,
         id: device.id,
@@ -93,6 +94,11 @@ async function main() {
         stale: lsa > 0 && (now - lsa > STALE_MS),
         values: s.values || {},
         errors: s.errors || {},
+        capability: cap ? {
+          supportedGetEpcs: cap.supported,
+          unsupportedEpcs: cap.unsupported,
+          source: cap.source,
+        } : null,
       };
     }
     res.json({ devices: data, pollStatus });
