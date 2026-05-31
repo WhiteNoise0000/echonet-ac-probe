@@ -80,8 +80,8 @@ function parseBitmap(edt) {
   const codes = [];
   if (edt.length === 0) return codes;
   const first = edt[0];
-  if (first < 16) {
-    for (let i = 1; i <= first && i < edt.length; i++) {
+  if (first < 16 && edt.length >= first + 1) {
+    for (let i = 1; i <= first; i++) {
       codes.push(edt[i]);
     }
   } else {
@@ -145,7 +145,7 @@ const TEMP_SENTINEL = 0x7E; // 126 / 0x7E means "not available"
 
 function isValidValue(epc, edt) {
   if (!edt || edt.length === 0) return false;
-  const temps = [0xB3, 0xBB, 0xBE];
+  const temps = [0xBB, 0xBE];
   if (temps.includes(epc) && edt.length === 1 && edt[0] >= TEMP_SENTINEL) return false;
   return true;
 }

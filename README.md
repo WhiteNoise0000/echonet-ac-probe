@@ -159,20 +159,20 @@ npm start        # or: npm run dev
 ```
 
 設定は `config.json` で行います。
+`config.example.json` をコピーして編集してください。
+`config.json` は `.gitignore` に含まれているため誤 commit を防げます。
 
-### 設定 (config.json)
+### 設定 (config.example.json)
 
 ```json
 {
-  "localAddress": "192.168.0.144",
+  "localAddress": "192.168.x.xxx",
   "pollIntervalMs": 30000,
   "requestTimeoutMs": 5000,
   "httpPort": 3000,
   "devices": [
-    { "ip": "192.168.0.101", "room": "101" },
-    { "ip": "192.168.0.121", "room": "121" },
-    { "ip": "192.168.0.122", "room": "122" },
-    { "ip": "192.168.0.133", "room": "133" }
+    { "ip": "192.168.x.101", "room": "101" },
+    { "ip": "192.168.x.102", "room": "102" }
   ]
 }
 ```
@@ -227,7 +227,7 @@ CMD ["node", "src/server.js"]
 ```
 
 注意点:
-- `--net=host` または `CAP_NET_RAW` / `CAP_NET_ADMIN` が必要な場合あり (UDP/3610 raw socket)
+- `--net=host` での起動を推奨 (ホストのUDP/3610に直接アクセス)。通常のUDP送受信ではLinux capabilities は不要な場合が多い
 - `config.json` は外部 volume マウント推奨 (`/app/config.json`)
 - 環境変数による上書きを検討する場合は `config.json` の値を process.env で読み替え
 
