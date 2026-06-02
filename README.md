@@ -131,7 +131,7 @@ No ECHONET Lite responses received.
 主な原因:
 
 | 原因 | 確認方法 |
-|---|---|---|
+|---|---|
 | `--local-address` が間違っている | `ipconfig` で正しいLAN側IPを確認 |
 | ファイアウォールが UDP/3610 をブロック | 一時的に無効化、または受信許可ルール追加 |
 | AP分離 (クライアント分離) | Wi-Fiルーターの設定を確認 |
