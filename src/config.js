@@ -1,6 +1,27 @@
 const fs = require('fs');
 const path = require('path');
 
+function parseIntegerOrExit(name, envValue, configValue, defaultValue, min, max) {
+  let raw;
+  if (envValue !== undefined && envValue !== '') {
+    raw = envValue;
+  } else if (configValue !== undefined && configValue !== null && configValue !== '') {
+    raw = String(configValue);
+  } else {
+    return defaultValue;
+  }
+  if (!/^-?\d+$/.test(String(raw).trim())) {
+    console.error(`error: ${name} must be an integer (got "${raw}")`);
+    process.exit(1);
+  }
+  const n = parseInt(raw, 10);
+  if (n < min || n > max) {
+    console.error(`error: ${name} must be in [${min}, ${max}] (got ${n})`);
+    process.exit(1);
+  }
+  return n;
+}
+
 function loadConfig() {
   const defaultPath = path.resolve(__dirname, '..', 'config.json');
   const configPath = process.env.CONFIG_PATH || defaultPath;
@@ -25,9 +46,9 @@ function loadConfig() {
   }
 
   const localAddress = process.env.LOCAL_ADDRESS || raw.localAddress || null;
-  const httpPort = parseInt(process.env.HTTP_PORT || String(raw.httpPort || 3000), 10);
-  const pollIntervalMs = parseInt(process.env.POLL_INTERVAL_MS || String(raw.pollIntervalMs || 30000), 10);
-  const requestTimeoutMs = parseInt(process.env.REQUEST_TIMEOUT_MS || String(raw.requestTimeoutMs || 5000), 10);
+  const httpPort = parseIntegerOrExit('HTTP_PORT', process.env.HTTP_PORT, raw.httpPort, 3000, 1, 65535);
+  const pollIntervalMs = parseIntegerOrExit('POLL_INTERVAL_MS', process.env.POLL_INTERVAL_MS, raw.pollIntervalMs, 30000, 100, 86400000);
+  const requestTimeoutMs = parseIntegerOrExit('REQUEST_TIMEOUT_MS', process.env.REQUEST_TIMEOUT_MS, raw.requestTimeoutMs, 5000, 100, 30000);
 
   let devices = raw.devices || [];
   if (hasDevicesJson) {

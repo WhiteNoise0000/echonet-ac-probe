@@ -34,6 +34,7 @@
   --stale-label-fg: #aa0;
   --icon-opacity: 0.85;
   --stale-border: #5a5a3a;
+  --footer-fg: #555;
 }
 @media (prefers-color-scheme: light) {
   :root {
@@ -64,6 +65,7 @@
     --stale-label-bg: #f8f0d0;
     --stale-label-fg: #886a10;
     --stale-border: #c8b84a;
+    --footer-fg: #999;
   }
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -100,11 +102,14 @@ h1 span { color: var(--text-muted); font-size: .85rem; font-weight: 400; }
 .value-na { color: var(--text-muted); font-weight: 400; }
 .value-loading { color: var(--text-muted); font-weight: 400; opacity: .4; }
 .timestamp { font-size: .7rem; color: var(--text-muted); margin-top: 10px; text-align: right; }
+.timestamp.muted { color: var(--text-muted); }
+.footer { margin-top: 16px; font-size: .65rem; color: var(--footer-fg); text-align: right; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .02em; }
 </style>
 </head>
 <body>
 <h1>❄ ノクリア 状態モニター <span>Fujitsu Nocria</span></h1>
 <div class="grid" id="cards"></div>
+<footer class="footer" id="footer"></footer>
 <script>
 const EPCS = [
   { epc: 0x80, icon: '⚡', label: '動作状態' },
@@ -118,7 +123,35 @@ const EPCS = [
   { epc: 0x85, icon: '📊', label: '積算電力量' },
 ];
 
-function cardHTML(d) {
+function el(tag, options) {
+  const node = document.createElement(tag);
+  if (!options) return node;
+  if (options.className) node.className = options.className;
+  if (options.text != null) node.textContent = options.text;
+  if (options.title) node.title = options.title;
+  return node;
+}
+
+function valueClass(dec) {
+  if (dec.includes('°C')) return 'value value-temp';
+  if (dec.includes('kWh')) return 'value value-energy';
+  if (dec.includes('W')) return 'value value-power';
+  if (dec === '異常あり (Fault)') return 'value value-error';
+  if (dec === '異常なし (Normal)') return 'value value-ok';
+  return 'value';
+}
+
+function valueSpan(v, e, epc) {
+  const entry = v && v[epc];
+  if (entry) {
+    if (entry.valid === false) return el('span', { className: 'value value-na', text: '—' });
+    return el('span', { className: valueClass(entry.dec), text: entry.dec });
+  }
+  if (e && e[epc]) return el('span', { className: 'value value-na', text: '—' });
+  return el('span', { className: 'value value-loading', text: '…' });
+}
+
+function buildCard(d) {
   const v = d.values || {};
   const e = d.errors || {};
   const stale = !!d.stale;
@@ -130,66 +163,78 @@ function cardHTML(d) {
   const tsFormatted = lsa ? new Date(lsa).toLocaleTimeString('ja-JP') : null;
 
   let barClass = 'bar-stale', badgeClass = 'badge-stale', badgeText = '—';
-  if (!lsa) { badgeText = '未取得'; badgeClass = 'badge-stale'; }
-  else if (stale) { badgeText = 'stale'; badgeClass = 'badge-stale'; }
+  if (!lsa) { badgeText = '未取得'; }
+  else if (stale) { badgeText = 'stale'; }
   else if (opOn) { barClass = 'bar-on'; badgeClass = 'badge-on'; badgeText = 'ON'; }
-  else if (opOff) { barClass = 'bar-off'; badgeClass = 'badge-off'; badgeText = 'OFF'; }
-  else { barClass = 'bar-off'; badgeClass = 'badge-off'; badgeText = '—'; }
+  else if (opOff) { badgeClass = 'badge-off'; badgeText = 'OFF'; }
+  else { badgeClass = 'badge-off'; badgeText = '—'; }
 
-  function val(epc) {
-    if (v[epc]) {
-      if (v[epc].valid === false) return '<span class="value value-na">—</span>';
-      let cls = 'value';
-      const dec = v[epc].dec;
-      if (dec.includes('°C')) cls += ' value-temp';
-      else if (dec.includes('W') && !dec.includes('kWh')) cls += ' value-power';
-      else if (dec.includes('kWh')) cls += ' value-energy';
-      else if (dec === '異常あり (Fault)' || dec === 'Fault') cls += ' value-error';
-      else if (dec === '異常なし (Normal)' || dec === 'Normal') cls += ' value-ok';
-      else if (dec === 'ON' || dec === 'OFF') cls += '';
-      else cls += '';
-      return `<span class="${cls}">${dec}</span>`;
-    }
-    if (e[epc]) return '<span class="value value-na">—</span>';
-    return '<span class="value value-loading">…</span>';
+  const card = el('div', { className: 'card' + (stale ? ' stale' : '') });
+  card.appendChild(el('div', { className: 'card-bar ' + barClass }));
+
+  const body = el('div', { className: 'card-body' });
+  card.appendChild(body);
+
+  const header = el('div', { className: 'card-header' });
+  body.appendChild(header);
+
+  const left = el('div', { className: 'left' });
+  left.appendChild(el('div', { className: 'name', text: name }));
+  left.appendChild(el('div', { className: 'ip', text: d.ip }));
+  header.appendChild(left);
+
+  const right = el('div', { className: 'right' });
+  right.appendChild(el('span', { className: 'status-badge ' + badgeClass, text: badgeText }));
+  header.appendChild(right);
+
+  for (const item of EPCS) {
+    const row = el('div', { className: 'row' });
+    const labelSpan = el('span', { className: 'label' });
+    labelSpan.appendChild(el('span', { className: 'icon', text: item.icon }));
+    labelSpan.appendChild(document.createTextNode(item.label));
+    row.appendChild(labelSpan);
+    row.appendChild(valueSpan(v, e, item.epc));
+    body.appendChild(row);
   }
 
-  const rows = EPCS.map(e => `<div class="row">
-    <span class="label"><span class="icon">${e.icon}</span>${e.label}</span>
-    ${val(e.epc)}
-  </div>`).join('');
+  const tsLine = el('div', { className: 'timestamp' });
+  if (tsFormatted) {
+    tsLine.textContent = tsFormatted + (stale ? ' (stale)' : '');
+  } else {
+    tsLine.classList.add('muted');
+    tsLine.textContent = '未取得';
+  }
+  body.appendChild(tsLine);
 
-  const tsLine = tsFormatted
-    ? `<div class="timestamp">${tsFormatted}${stale ? ' (stale)' : ''}</div>`
-    : '<div class="timestamp" style="color:var(--text-muted)">未取得</div>';
-
-  return `<div class="card${stale ? ' stale' : ''}">
-    <div class="card-bar ${barClass}"></div>
-    <div class="card-body">
-      <div class="card-header">
-        <div class="left">
-          <div class="name">${name}</div>
-          <div class="ip">${d.ip}</div>
-        </div>
-        <div class="right">
-          <span class="status-badge ${badgeClass}">${badgeText}</span>
-        </div>
-      </div>
-      ${rows}
-      ${tsLine}
-    </div>
-  </div>`;
+  return card;
 }
 
 async function refresh() {
   try {
     const r = await fetch('/api/status');
     const body = await r.json();
-    const data = body.devices || body; // handle both old flat and new {devices,pollStatus}
-    document.getElementById('cards').innerHTML = Object.values(data).map(cardHTML).join('');
+    const data = body.devices || body;
+    const container = document.getElementById('cards');
+    container.replaceChildren();
+    for (const d of Object.values(data)) {
+      container.appendChild(buildCard(d));
+    }
   } catch (e) { console.error(e); }
 }
+
+async function loadFooter() {
+  const elFooter = document.getElementById('footer');
+  try {
+    const r = await fetch('/api/version');
+    const v = await r.json();
+    elFooter.textContent = `${v.gitShaShort} · ${v.buildDate}`;
+  } catch (e) {
+    elFooter.textContent = '';
+  }
+}
+
 refresh();
+loadFooter();
 setInterval(refresh, 10000);
 </script>
 </body>

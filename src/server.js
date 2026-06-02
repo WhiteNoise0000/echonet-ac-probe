@@ -3,6 +3,7 @@ const path = require('path');
 const { loadConfig } = require('./config');
 const { createPoller } = require('./poller');
 const { interpret } = require('./echonet');
+const version = require('./version');
 
 const STALE_MS = 90000;
 const config = loadConfig();
@@ -71,6 +72,10 @@ async function main() {
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'alive', uptime: process.uptime() });
+  });
+
+  app.get('/api/version', (_req, res) => {
+    res.json(version);
   });
 
   app.get('/api/devices', (_req, res) => {
