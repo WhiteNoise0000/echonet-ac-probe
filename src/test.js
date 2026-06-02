@@ -118,6 +118,150 @@ p.close();
   if (saveDev) process.env.DEVICES_JSON = saveDev; else delete process.env.DEVICES_JSON;
 })();
 
+// ---- config integer validation ----
+function trapExit(fn) {
+  const origExit = process.exit;
+  const origErr = console.error;
+  let code = null;
+  const errs = [];
+  process.exit = (c) => { code = c; throw new Error('__EXIT__'); };
+  console.error = (m) => errs.push(String(m));
+  try {
+    fn();
+    return { exited: false, code, errs };
+  } catch (e) {
+    if (e.message === '__EXIT__') return { exited: true, code, errs };
+    throw e;
+  } finally {
+    process.exit = origExit;
+    console.error = origErr;
+  }
+}
+
+function reloadConfig() {
+  delete require.cache[require.resolve('./config')];
+  return require('./config');
+}
+
+(function testConfigValidation() {
+  const saveCfg = process.env.CONFIG_PATH;
+  const saveAddr = process.env.LOCAL_ADDRESS;
+  const saveDev = process.env.DEVICES_JSON;
+  const savePort = process.env.HTTP_PORT;
+  const savePoll = process.env.POLL_INTERVAL_MS;
+  const saveTimeout = process.env.REQUEST_TIMEOUT_MS;
+
+  process.env.CONFIG_PATH = 'NONEXISTENT';
+  delete process.env.LOCAL_ADDRESS;
+  process.env.DEVICES_JSON = '[{"ip":"10.0.0.1"}]';
+
+  // Defaults
+  delete process.env.HTTP_PORT;
+  delete process.env.POLL_INTERVAL_MS;
+  delete process.env.REQUEST_TIMEOUT_MS;
+  let c = reloadConfig().loadConfig();
+  assert(c.httpPort === 3000, 'config: default httpPort');
+  assert(c.pollIntervalMs === 30000, 'config: default pollIntervalMs');
+  assert(c.requestTimeoutMs === 5000, 'config: default requestTimeoutMs');
+
+  // Valid env override
+  process.env.HTTP_PORT = '8080';
+  process.env.POLL_INTERVAL_MS = '60000';
+  process.env.REQUEST_TIMEOUT_MS = '1000';
+  c = reloadConfig().loadConfig();
+  assert(c.httpPort === 8080, 'config: httpPort from env');
+  assert(c.pollIntervalMs === 60000, 'config: pollIntervalMs from env');
+  assert(c.requestTimeoutMs === 1000, 'config: requestTimeoutMs from env');
+
+  // Invalid: non-integer
+  process.env.HTTP_PORT = 'abc';
+  let r = trapExit(() => reloadConfig().loadConfig());
+  assert(r.exited && r.code === 1, 'config: HTTP_PORT=abc exits with code 1');
+  assert(r.errs.some(e => e.includes('HTTP_PORT')), 'config: error mentions HTTP_PORT');
+
+  // Invalid: out of range (port 0)
+  process.env.HTTP_PORT = '0';
+  r = trapExit(() => reloadConfig().loadConfig());
+  assert(r.exited, 'config: HTTP_PORT=0 exits');
+  assert(r.errs.some(e => e.includes('HTTP_PORT')), 'config: error mentions HTTP_PORT (range)');
+
+  // Invalid: out of range (port 99999)
+  process.env.HTTP_PORT = '99999';
+  r = trapExit(() => reloadConfig().loadConfig());
+  assert(r.exited, 'config: HTTP_PORT=99999 exits');
+
+  // Invalid: POLL_INTERVAL_MS=0
+  process.env.HTTP_PORT = '3000';
+  process.env.POLL_INTERVAL_MS = '0';
+  r = trapExit(() => reloadConfig().loadConfig());
+  assert(r.exited, 'config: POLL_INTERVAL_MS=0 exits');
+  assert(r.errs.some(e => e.includes('POLL_INTERVAL_MS')), 'config: error mentions POLL_INTERVAL_MS');
+
+  // Invalid: REQUEST_TIMEOUT_MS=foo
+  process.env.POLL_INTERVAL_MS = '30000';
+  process.env.REQUEST_TIMEOUT_MS = 'foo';
+  r = trapExit(() => reloadConfig().loadConfig());
+  assert(r.exited, 'config: REQUEST_TIMEOUT_MS=foo exits');
+  assert(r.errs.some(e => e.includes('REQUEST_TIMEOUT_MS')), 'config: error mentions REQUEST_TIMEOUT_MS');
+
+  // restore
+  if (saveCfg) process.env.CONFIG_PATH = saveCfg; else delete process.env.CONFIG_PATH;
+  if (saveAddr) process.env.LOCAL_ADDRESS = saveAddr; else delete process.env.LOCAL_ADDRESS;
+  if (saveDev) process.env.DEVICES_JSON = saveDev; else delete process.env.DEVICES_JSON;
+  if (savePort) process.env.HTTP_PORT = savePort; else delete process.env.HTTP_PORT;
+  if (savePoll) process.env.POLL_INTERVAL_MS = savePoll; else delete process.env.POLL_INTERVAL_MS;
+  if (saveTimeout) process.env.REQUEST_TIMEOUT_MS = saveTimeout; else delete process.env.REQUEST_TIMEOUT_MS;
+  reloadConfig();
+})();
+
+// ---- version module ----
+function reloadVersion() {
+  delete require.cache[require.resolve('./version')];
+  return require('./version');
+}
+
+(function testVersion() {
+  const saveVer = process.env.APP_VERSION;
+  const saveSha = process.env.APP_GIT_SHA;
+  const saveDate = process.env.APP_BUILD_DATE;
+  const saveEnv = process.env.NODE_ENV;
+
+  // Defaults (env unset)
+  delete process.env.APP_VERSION;
+  delete process.env.APP_GIT_SHA;
+  delete process.env.APP_BUILD_DATE;
+  delete process.env.NODE_ENV;
+  let v = reloadVersion();
+  assert(v.gitSha === 'unknown', 'version: default gitSha');
+  assert(v.gitShaShort === 'unknown', 'version: default gitShaShort');
+  assert(v.buildDate === 'unknown', 'version: default buildDate');
+  assert(v.appVersion === '1.0.0', 'version: appVersion falls back to package.json');
+
+  // From env
+  process.env.APP_VERSION = 'v1.2.3';
+  process.env.APP_GIT_SHA = 'abc1234567890def';
+  process.env.APP_BUILD_DATE = '2026-06-02T00:00:00Z';
+  process.env.NODE_ENV = 'production';
+  v = reloadVersion();
+  assert(v.appVersion === 'v1.2.3', 'version: appVersion from env overrides package.json');
+  assert(v.gitSha === 'abc1234567890def', 'version: gitSha from env');
+  assert(v.gitShaShort === 'abc1234', 'version: gitShaShort truncates to 7');
+  assert(v.buildDate === '2026-06-02T00:00:00Z', 'version: buildDate from env');
+  assert(v.nodeEnv === 'production', 'version: nodeEnv from env');
+
+  // Long SHA also truncates
+  process.env.APP_GIT_SHA = '0123456789abcdef0123456789abcdef01234567';
+  v = reloadVersion();
+  assert(v.gitShaShort === '0123456', 'version: gitShaShort of long SHA');
+
+  // restore
+  if (saveVer) process.env.APP_VERSION = saveVer; else delete process.env.APP_VERSION;
+  if (saveSha) process.env.APP_GIT_SHA = saveSha; else delete process.env.APP_GIT_SHA;
+  if (saveDate) process.env.APP_BUILD_DATE = saveDate; else delete process.env.APP_BUILD_DATE;
+  if (saveEnv) process.env.NODE_ENV = saveEnv; else delete process.env.NODE_ENV;
+  reloadVersion();
+})();
+
 // ---- summary ----
 const total = passed + failed;
 console.log(`\n${total} tests: ${passed} passed, ${failed} failed${failed ? ' ❌' : ' ✅'}`);

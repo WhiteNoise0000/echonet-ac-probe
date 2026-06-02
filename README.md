@@ -213,6 +213,7 @@ environment:
 |---|---|
 | `GET /` | 状態カードUI |
 | `GET /health` | `{ "status": "alive", "uptime": ... }` |
+| `GET /api/version` | ビルド情報 (`appVersion`, `gitSha`, `gitShaShort`, `buildDate`, `nodeEnv`) |
 | `GET /api/devices` | 設定済みデバイス一覧 |
 | `GET /api/status` | 最新取得値のJSON |
 | `GET /metrics` | Prometheus形式メトリクス |
@@ -296,6 +297,19 @@ docker build -t echonet-ac-probe:test .
 docker run --rm echonet-ac-probe:test node src/test.js
 docker run --rm --network=host -v /path/to/config.json:/config/config.json:ro echonet-ac-probe:test
 ```
+
+#### ビルド引数
+
+| 引数 | 説明 | デフォルト |
+|---|---|---|
+| `APP_VERSION` | `/api/version` の `appVersion` (CI では `${{ github.ref_name }}` = ブランチ名 or タグ名) | `package.json` の `version` |
+| `GIT_SHA` | `/api/version` の `gitSha` / `gitShaShort` | `unknown` |
+| `BUILD_DATE` | `/api/version` の `buildDate` (ISO 8601 UTC 推奨) | `unknown` |
+
+CI (`.github/workflows/docker-publish.yml`) では `APP_VERSION` にブランチ名/タグ名、
+`GIT_SHA` にコミットハッシュ、`BUILD_DATE` に `date -u +'%Y-%m-%dT%H:%M:%SZ'` を
+渡しています。ローカル開発で省略すると `APP_VERSION` は `package.json` の値、
+他は `unknown` を返します。
 
 #### TrueNAS 設定の要点
 

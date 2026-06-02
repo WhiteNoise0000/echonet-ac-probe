@@ -96,7 +96,7 @@ async function main() {
         }
       }, timeout);
 
-      pending = { targetIP, tid, resolve: (result) => { clearTimeout(timer); resolve(result); } };
+      pending = { targetIP, tid, resolve: (result) => { clearTimeout(timer); pending = null; resolve(result); } };
       sock.send(req, 0, req.length, PORT, targetIP, (err) => {
         if (err) {
           clearTimeout(timer);
