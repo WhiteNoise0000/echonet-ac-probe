@@ -15,6 +15,7 @@ ENV APP_GIT_SHA=$GIT_SHA
 ENV APP_BUILD_DATE=$BUILD_DATE
 
 COPY --from=build /app/node_modules ./node_modules
+COPY package.json ./
 COPY src/ ./src/
 COPY config.example.json ./
 

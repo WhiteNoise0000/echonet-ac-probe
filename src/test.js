@@ -1,5 +1,9 @@
 const { parseBitmap, interpret, isValidValue } = require('./echonet');
 const { loadConfig } = require('./config');
+const { execFileSync } = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 let passed = 0;
 let failed = 0;
@@ -260,6 +264,46 @@ function reloadVersion() {
   if (saveDate) process.env.APP_BUILD_DATE = saveDate; else delete process.env.APP_BUILD_DATE;
   if (saveEnv) process.env.NODE_ENV = saveEnv; else delete process.env.NODE_ENV;
   reloadVersion();
+})();
+
+// ---- version module resilience: package.json missing ----
+(function testVersionWithoutPackageJson() {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'echonet-ver-'));
+  const srcDir = path.join(tmpDir, 'src');
+  fs.mkdirSync(srcDir);
+  fs.copyFileSync(path.join(__dirname, 'version.js'), path.join(srcDir, 'version.js'));
+  fs.copyFileSync(path.join(__dirname, 'echonet.js'), path.join(srcDir, 'echonet.js'));
+
+  try {
+    const envBase = {
+      APP_VERSION: 'env-wins',
+      APP_GIT_SHA: '0123456789abcdef',
+      APP_BUILD_DATE: '2026-06-02T00:00:00Z',
+      NODE_ENV: 'production',
+    };
+
+    const outEnv = execFileSync(process.execPath, [
+      '-e',
+      "console.log(JSON.stringify(require('./src/version')))",
+    ], { cwd: tmpDir, env: { ...process.env, ...envBase } }).toString().trim();
+    const vEnv = JSON.parse(outEnv);
+    assert(vEnv.appVersion === 'env-wins', 'version: APP_VERSION env wins when package.json missing');
+    assert(vEnv.gitShaShort === '0123456', 'version: gitShaShort from env when package.json missing');
+    assert(vEnv.buildDate === '2026-06-02T00:00:00Z', 'version: buildDate from env when package.json missing');
+    assert(vEnv.nodeEnv === 'production', 'version: nodeEnv from env when package.json missing');
+
+    const cleanEnv = {};
+    for (const k of ['APP_VERSION', 'APP_GIT_SHA', 'APP_BUILD_DATE', 'NODE_ENV']) delete cleanEnv[k];
+    const outNoEnv = execFileSync(process.execPath, [
+      '-e',
+      "console.log(JSON.stringify(require('./src/version')))",
+    ], { cwd: tmpDir, env: { ...process.env, ...cleanEnv } }).toString().trim();
+    const vNoEnv = JSON.parse(outNoEnv);
+    assert(vNoEnv.appVersion === 'unknown', 'version: appVersion=unknown when both env and package.json missing');
+    assert(vNoEnv.gitSha === 'unknown', 'version: gitSha=unknown when env missing');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 })();
 
 // ---- summary ----

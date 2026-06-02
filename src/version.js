@@ -1,6 +1,10 @@
-const pkg = require('../package.json');
+let pkgVersion = 'unknown';
+try {
+  pkgVersion = require('../package.json').version || 'unknown';
+} catch (e) {
+}
 
-const appVersion = process.env.APP_VERSION || pkg.version;
+const appVersion = process.env.APP_VERSION || pkgVersion;
 const gitSha = process.env.APP_GIT_SHA || 'unknown';
 const buildDate = process.env.APP_BUILD_DATE || 'unknown';
 const nodeEnv = process.env.NODE_ENV || 'development';
