@@ -93,13 +93,20 @@ assert(!SAFE.includes(0xBA), 'capability: 0xBA excluded from SAFE fallback');
 assert(SAFE.includes(0x80), 'capability: 0x80 in SAFE fallback');
 
 // ---- poller shape ----
-const { createPoller } = require('./poller');
+const { createPoller, nextTid } = require('./poller');
 const p = createPoller('127.0.0.1', 2000);
 assert(typeof p.init === 'function', 'poller: init is a function');
 assert(typeof p.pollAll === 'function', 'poller: pollAll is a function');
 assert(typeof p.close === 'function', 'poller: close is a function');
 // close without init should not throw
 p.close();
+
+// ---- transaction ID rollover ----
+assert(nextTid(65534) === 65535, 'transaction ID: increment before maximum');
+assert(nextTid(65535) === 1, 'transaction ID: wrap maximum to 1');
+let tid = 1;
+for (let i = 0; i < 65535; i++) tid = nextTid(tid);
+assert(tid === 1, 'transaction ID: completes a full uint16 rollover cycle');
 
 // ---- config ----
 (function testConfig() {

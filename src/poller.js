@@ -3,6 +3,14 @@ const { PORT, EOJ_AC, EPC_NAME, hex, buildGet, parseEL, interpret, isValidValue,
 
 const DESIRED_EPCS = [0x80, 0x83, 0x88, 0x84, 0x85, 0x8A, 0xB0, 0xB3, 0xBA, 0xBB, 0xBE];
 const SAFE_EPCS = [0x80, 0x83, 0x84, 0x85, 0x88, 0x8A, 0xB0, 0xB3, 0xBB, 0xBE]; // excludes 0xBA
+const MAX_TID = 0xFFFF;
+
+function nextTid(tid) {
+  if (!Number.isInteger(tid) || tid < 1 || tid > MAX_TID) {
+    throw new RangeError(`transaction ID must be between 1 and ${MAX_TID}`);
+  }
+  return tid === MAX_TID ? 1 : tid + 1;
+}
 
 function createPoller(localAddress, requestTimeoutMs) {
   const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true });
@@ -24,7 +32,8 @@ function createPoller(localAddress, requestTimeoutMs) {
   function sendGet(targetIP, epcs) {
     return new Promise((resolve) => {
       const list = Array.isArray(epcs) ? epcs : [epcs];
-      const tid = tidCounter++;
+      const tid = tidCounter;
+      tidCounter = nextTid(tidCounter);
       const req = buildGet(EOJ_AC, list, tid);
       const timer = setTimeout(() => {
         if (pending && pending.targetIP === targetIP && pending.tid === tid) {
@@ -141,4 +150,4 @@ function createPoller(localAddress, requestTimeoutMs) {
   return { init, pollAll, close };
 }
 
-module.exports = { createPoller, DESIRED_EPCS, SAFE_EPCS };
+module.exports = { createPoller, DESIRED_EPCS, SAFE_EPCS, nextTid };
