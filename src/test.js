@@ -105,8 +105,8 @@ p.close();
 assert(nextTid(65534) === 65535, 'transaction ID: increment before maximum');
 assert(nextTid(65535) === 1, 'transaction ID: wrap maximum to 1');
 let tid = 1;
-for (let i = 0; i < 100000; i++) tid = nextTid(tid);
-assert(tid >= 1 && tid <= 0xFFFF, 'transaction ID: remains a uint16 after long use');
+for (let i = 0; i < 65535; i++) tid = nextTid(tid);
+assert(tid === 1, 'transaction ID: completes a full uint16 rollover cycle');
 
 // ---- config ----
 (function testConfig() {
