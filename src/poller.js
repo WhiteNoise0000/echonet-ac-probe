@@ -4,6 +4,8 @@ const { PORT, EOJ_AC, EPC_NAME, hex, buildGet, parseEL, interpret, isValidValue,
 const DESIRED_EPCS = [0x80, 0x83, 0x88, 0x84, 0x85, 0x8A, 0xB0, 0xB3, 0xBA, 0xBB, 0xBE];
 const SAFE_EPCS = [0x80, 0x83, 0x84, 0x85, 0x88, 0x8A, 0xB0, 0xB3, 0xBB, 0xBE]; // excludes 0xBA
 const MAX_TID = 0xFFFF;
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 50;
 
 function nextTid(tid) {
   if (!Number.isInteger(tid) || tid < 1 || tid > MAX_TID) {
@@ -51,8 +53,12 @@ function createPoller(localAddress, requestTimeoutMs) {
     });
   }
 
+  async function sendGetWithRetry(targetIP, epcs) {
+    return retryRequest(() => sendGet(targetIP, epcs), MAX_RETRIES, RETRY_DELAY_MS);
+  }
+
   async function discoverCapability(ip) {
-    const res = await sendGet(ip, 0x9F);
+    const res = await sendGetWithRetry(ip, 0x9F);
     if (!res || res.esv === 0x52 || !res.props.length) return null;
     const prop = res.props.find(p => p.epc === 0x9F);
     if (!prop || prop.edt.length === 0) return null;
@@ -88,7 +94,7 @@ function createPoller(localAddress, requestTimeoutMs) {
 
     if (cap.supported.length === 0) return result;
 
-    const res = await sendGet(ip, cap.supported);
+    const res = await sendGetWithRetry(ip, cap.supported);
     if (!res) {
       for (const epc of cap.supported) result.errors[epc] = { reason: 'no response' };
       return result;
@@ -97,7 +103,7 @@ function createPoller(localAddress, requestTimeoutMs) {
     if (res.esv === 0x52) {
       // Batch Get_SNA: fallback to individual single-EPC GETs
       for (const epc of cap.supported) {
-        const single = await sendGet(ip, epc);
+        const single = await sendGetWithRetry(ip, epc);
         if (!single) {
           result.errors[epc] = { reason: 'no response' };
         } else if (single.esv === 0x52) {
@@ -150,4 +156,17 @@ function createPoller(localAddress, requestTimeoutMs) {
   return { init, pollAll, close };
 }
 
-module.exports = { createPoller, DESIRED_EPCS, SAFE_EPCS, nextTid };
+async function retryRequest(request, maxRetries = MAX_RETRIES, delayMs = RETRY_DELAY_MS) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const result = await request();
+    if (result !== null && result !== undefined) return result;
+    if (attempt < maxRetries && delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  return null;
+}
+
+module.exports = {
+  createPoller, DESIRED_EPCS, SAFE_EPCS, nextTid, retryRequest, MAX_RETRIES,
+};
