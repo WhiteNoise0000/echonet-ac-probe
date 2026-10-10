@@ -8,8 +8,8 @@ function help() {
   console.log('ECHONET Lite Probe - Discover ECHONET Lite devices on LAN');
   console.log('');
   console.log('Usage:');
-  console.log('  node src/probe.js --local-address <IP> [options]');
-  console.log('  npm run probe -- --local-address <IP> [options]');
+  console.log('  bun src/probe.js --local-address <IP> [options]');
+  console.log('  bun run probe --local-address <IP> [options]');
   console.log('');
   console.log('Modes (mutually exclusive):');
   console.log('  (no --target, no --scan)  Multicast to 224.0.23.0:3610 (default)');

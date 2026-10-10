@@ -4,12 +4,12 @@
   "private": true,
   "description": "ECHONET Lite device discovery probe for Home Air Conditioners (OP-J03DZ)",
   "scripts": {
-    "probe": "node src/probe.js",
-    "inspect": "node src/inspect.js",
-    "start": "node src/server.js",
-    "dev": "node src/server.js",
-    "lint": "node --check src/config.js && node --check src/echonet.js && node --check src/inspect.js && node --check src/poller.js && node --check src/probe.js && node --check src/server.js && node --check src/test.js && node --check src/retry-test.js && node --check src/version.js",
-    "test": "node src/test.js && node src/retry-test.js"
+    "probe": "bun src/probe.js",
+    "inspect": "bun src/inspect.js",
+    "start": "bun src/server.js",
+    "dev": "bun src/server.js",
+    "lint": "bun build --target=bun --no-bundle --outdir=.bun-check src/config.js src/echonet.js src/inspect.js src/poller.js src/probe.js src/server.js src/test.js src/retry-test.js src/version.js",
+    "test": "bun src/test.js && bun src/retry-test.js"
   },
   "dependencies": {
     "express": "^4.21.0"
