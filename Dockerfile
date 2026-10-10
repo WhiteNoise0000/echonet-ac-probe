@@ -1,9 +1,9 @@
-FROM node:22-alpine AS build
+FROM oven/bun:1.4.3-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+COPY package.json bun.lock ./
+RUN bun install --production --frozen-lockfile
 
-FROM node:22-alpine
+FROM oven/bun:1.4.3-alpine
 WORKDIR /app
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
@@ -32,4 +32,4 @@ LABEL org.opencontainers.image.created=$BUILD_DATE
 
 USER appuser
 
-CMD ["node", "src/server.js"]
+CMD ["bun", "src/server.js"]

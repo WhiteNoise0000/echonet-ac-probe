@@ -17,8 +17,8 @@ function help() {
   console.log('ECHONET Lite Inspect - Read EPCs from a Home Air Conditioner');
   console.log('');
   console.log('Usage:');
-  console.log('  node src/inspect.js --local-address <IP> --target <IP> [--target <IP> ...] [options]');
-  console.log('  npm run inspect -- --local-address <IP> --target <IP>');
+  console.log('  bun src/inspect.js --local-address <IP> --target <IP> [--target <IP> ...] [options]');
+  console.log('  bun run inspect --local-address <IP> --target <IP>');
   console.log('');
   console.log('Options:');
   console.log('  --local-address <IP>    Source IPv4 address for binding');

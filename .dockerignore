@@ -1,7 +1,7 @@
 node_modules/
+.bun-check/
 config.json
 .git/
 .github/
-npm-debug.log*
 *.log
 .DS_Store

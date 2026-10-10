@@ -9,13 +9,13 @@
 
 ## 必要環境
 
-- Node.js 18+
+- Bun 1.4.3+
 - Windows
 
 ## セットアップ
 
 ```console
-npm install
+bun install
 ```
 
 ## 使い方 (CLI)
@@ -23,7 +23,7 @@ npm install
 ### マルチキャスト探索 (default)
 
 ```console
-npm run probe -- --local-address 192.168.x.x
+bun run probe --local-address 192.168.x.x
 ```
 
 `--local-address` には PC の LAN 側 IPv4 アドレスを指定します (`ipconfig` で確認)。
@@ -31,7 +31,7 @@ npm run probe -- --local-address 192.168.x.x
 ### ユニキャスト探索 (マルチキャストが通らない場合)
 
 ```console
-npm run probe -- --local-address 192.168.x.x --target 192.168.x.y
+bun run probe --local-address 192.168.x.x --target 192.168.x.y
 ```
 
 ECHONET Lite Get を特定 IP に直接送信します。以下の場合に有効:
@@ -48,14 +48,14 @@ ECHONET Lite Get を特定 IP に直接送信します。以下の場合に有�
 | `--timeout <ms>` | 応答待機時間 | 10000 |
 
 ```console
-npm run probe -- --local-address 192.168.1.100 --timeout 15000
-npm run probe -- --local-address 192.168.1.100 --target 192.168.1.50 --timeout 5000
+bun run probe --local-address 192.168.1.100 --timeout 15000
+bun run probe --local-address 192.168.1.100 --target 192.168.1.50 --timeout 5000
 ```
 
 ### スキャンモード
 
 ```console
-npm run probe -- --local-address 192.168.x.x --scan
+bun run probe --local-address 192.168.x.x --scan
 ```
 
 /24 サブネットを順次スキャンし、最初に応答があった ECHONET Lite 機器で停止します。
@@ -68,7 +68,7 @@ npm run probe -- --local-address 192.168.x.x --scan
 | `--scan-interval <ms>` | プローブ間隔 | 300 |
 
 ```console
-npm run probe -- --local-address 192.168.1.10 --scan-all --scan-interval 150
+bun run probe --local-address 192.168.1.10 --scan-all --scan-interval 150
 ```
 
 ---
@@ -76,7 +76,7 @@ npm run probe -- --local-address 192.168.1.10 --scan-all --scan-interval 150
 ## Inspect — 発見済みエアコンのEPC読み取り
 
 ```console
-npm run inspect -- --local-address 192.168.x.x --target <AC-IP>
+bun run inspect --local-address 192.168.x.x --target <AC-IP>
 ```
 
 各対象IPの EOJ `0x013001` (Home Air Conditioner) に対して:
@@ -87,7 +87,7 @@ npm run inspect -- --local-address 192.168.x.x --target <AC-IP>
 複数台同時:
 
 ```console
-npm run inspect -- --local-address 192.168.1.10 --target 192.168.1.101 --target 192.168.1.102
+bun run inspect --local-address 192.168.1.10 --target 192.168.1.101 --target 192.168.1.102
 ```
 
 | オプション | 説明 | デフォルト |
@@ -160,7 +160,7 @@ netsh advfirewall firewall add rule name="EL-Probe" protocol=UDP dir=in localpor
 ### 起動
 
 ```console
-npm start        # or: npm run dev
+bun run start    # or: bun run dev
 ```
 
 設定は `config.json` または環境変数で行います。
@@ -299,7 +299,7 @@ services:
 
 ```console
 docker build -t echonet-ac-probe:test .
-docker run --rm echonet-ac-probe:test node src/test.js
+docker run --rm echonet-ac-probe:test bun src/test.js
 docker run --rm --network=host -v /path/to/config.json:/config/config.json:ro echonet-ac-probe:test
 ```
 
@@ -335,7 +335,7 @@ CI (`.github/workflows/docker-publish.yml`) では `APP_VERSION` にブランチ
 
 ### IP変動への備え
 
-各エアコンは EPC `0x83` (識別番号) を保持しており、`npm run inspect` で確認できます。
+各エアコンは EPC `0x83` (識別番号) を保持しており、`bun run inspect` で確認できます。
 4台の `0x83` が各々一意であることを確認済みです。
 
 将来 IP が変わっても `0x83` をキーに自動再探索できる可能性があります。
@@ -349,7 +349,7 @@ ON/OFF変更、設定温度変更、運転モード変更はできません。
 
 ## 仕組み
 
-- **依存ライブラリ最小限**: `probe.js` / `inspect.js` は Node.js 標準 `dgram` のみ。`server.js` は Express のみ追加。
+- **依存ライブラリ最小限**: `probe.js` / `inspect.js` は Bun の Node.js互換 `dgram` API を使用。`server.js` は Express のみ追加。
 - **プロトコル**: ECHONET Lite (UDP/3610) の GET (ESV 0x62) のみ。SET 系は未実装。
 - **ポーリング最適化**: 11 EPC を1リクエストにまとめて送信。応答は一括で処理。4台でも約2秒で完了。
 - **動的EPC選択**: 起動時または初回poll時に各デバイスへ 0x9F (Getプロパティマップ) を送信し、対応EPCのみを一括GET対象にする。0xBA(室内湿度)のように未対応のEPCは自動除外される。0x9F取得失敗時は過去実績のあるSAFE EPC一覧にfallbackする。
