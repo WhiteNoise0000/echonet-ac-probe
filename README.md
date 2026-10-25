@@ -9,8 +9,13 @@
 
 ## 必要環境
 
-- Bun 1.4.3+
+- Bun 1.4.4+
 - Windows
+
+Bun 1.4.3以前は、同梱Brotliの脆弱性
+[CVE-2026-111497](https://github.com/oven-sh/bun/security/advisories/GHSA-663w-cv8g-jj2p)
+の影響を受けます。ローカル環境は `bun upgrade` で更新してください。
+コンテナ運用では、Bun 1.4.4以降で再ビルドされたイメージへの更新・再作成が必要です。
 
 ## セットアップ
 
