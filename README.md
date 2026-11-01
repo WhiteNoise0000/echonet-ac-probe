@@ -255,6 +255,44 @@ environment:
 | `nocria_ac_outdoor_temperature_c` | gauge | 外気温度 (°C、無効値は出力しない) |
 | `nocria_ac_outdoor_temperature_valid` | gauge | 外気温度有効性 (1=有効, 0=取得不可) |
 
+#### 取得属性の棚卸し
+
+ステータスモニタの取得対象 (`DESIRED_EPCS`) は11属性です。
+
+| EPC | 属性 | Prometheus公開先 |
+|---|---|---|
+| `0x80` | 動作状態 | `nocria_ac_operation_status`（既存） |
+| `0x83` | 識別番号 | `nocria_ac_device_info` の `identification` ラベル（追加） |
+| `0x84` | 瞬時消費電力 | `nocria_ac_instant_power_w`（既存） |
+| `0x85` | 積算電力量 | `nocria_ac_total_energy_kwh`（既存） |
+| `0x88` | 異常状態 | `nocria_ac_error_status`（既存） |
+| `0x8A` | メーカーコード | `nocria_ac_device_info` の `manufacturer_code` ラベル（追加） |
+| `0xB0` | 運転モード | `nocria_ac_operation_mode{mode="..."}`（追加） |
+| `0xB3` | 設定温度 | `nocria_ac_set_temperature_c` / `_valid`（既存） |
+| `0xBA` | 室内湿度 | `nocria_ac_room_humidity_percent`（既存・機器対応時のみ取得） |
+| `0xBB` | 室内温度 | `nocria_ac_room_temperature_c`（既存） |
+| `0xBE` | 外気温度 | `nocria_ac_outdoor_temperature_c` / `_valid`（既存） |
+
+運転モードはgaugeで、`mode` は `auto`（自動）、`cooling`（冷房）、`heating`（暖房）、
+`dehumidification`（除湿）、`fan`（送風）、`other`（その他）の6系列です。
+取得したモードのみ1、残りは0になります。OFFでも設定モードは保持されるため、実際のON/OFFは動作状態で判定してください。
+`nocria_ac_device_info` は識別番号とメーカーコードの両方が有効な場合に1を公開します。
+
+未対応・取得失敗・不正値の動作状態、異常状態、運転モードはサンプルを出力しません。
+取得失敗をOFFや正常に置き換えません。通信状態は `nocria_ac_up` と `nocria_ac_stale` も併せて確認してください。
+`up` はいずれかの属性取得の成功を示し、全属性の取得成功を保証しません。
+ここでのONは機器の動作状態であり、コンプレッサーの稼働を保証するものではありません。
+
+冷房でONの機器を抽出する例:
+
+```promql
+(nocria_ac_operation_status == 1)
+and on (id, name, room, ip) (nocria_ac_operation_mode{mode="cooling"} == 1)
+and on (id, name, room, ip) (nocria_ac_up == 1)
+```
+
+今回の棚卸しは既に取得している11属性が対象です。未取得EPCの追加取得は行っていません。
+
 ### Docker / TrueNAS Custom App デプロイ
 
 #### ビルド済みイメージ
