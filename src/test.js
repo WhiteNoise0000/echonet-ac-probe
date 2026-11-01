@@ -246,7 +246,7 @@ function reloadVersion() {
   assert(v.gitSha === 'unknown', 'version: default gitSha');
   assert(v.gitShaShort === 'unknown', 'version: default gitShaShort');
   assert(v.buildDate === 'unknown', 'version: default buildDate');
-  assert(v.appVersion === '1.0.0', 'version: appVersion falls back to package.json');
+  assert(v.appVersion === '1.0.1', 'version: appVersion falls back to package.json');
 
   // From env
   process.env.APP_VERSION = 'v1.2.3';
@@ -311,6 +311,49 @@ function reloadVersion() {
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
+})();
+
+// ---- Prometheus rendering ----
+(function testMetrics() {
+  const { renderMetrics } = require('./metrics');
+  const device = { id: 'ac', name: 'room"\\test\n', room: 'room', ip: '127.0.0.2' };
+  const value = (raw, dec = '', valid = true) => ({ raw, dec, valid });
+  const values = {
+    0x80: value('30', 'ON'), 0x88: value('42', '異常なし (Normal)'),
+    0x83: value('01 02 03'), 0x8A: value('00 00 01'),
+    0x84: value('00 5a', '90 W'), 0x85: value('00 00 33 3e', '13.118 kWh'),
+    0xB3: value('19', '25 °C'), 0xBB: value('1a', '26 °C'),
+    0xBA: value('32', '50 %'), 0xBE: value('1d', '29 °C'),
+  };
+  const render = () => renderMetrics([device], { [device.ip]: { values, lastSuccessAt: 1000 } }, 2000);
+  for (const [raw, name] of Object.entries({ '41': 'auto', '42': 'cooling', '43': 'heating', '44': 'dehumidification', '45': 'fan', '46': 'other' })) {
+    values[0xB0] = value(raw);
+    const samples = render().split('\n').filter(l => l.startsWith('nocria_ac_operation_mode{'));
+    assert(samples.length === 6, `metrics: six mode series for ${name}`);
+    assert(samples.filter(l => l.endsWith(' 1')).length === 1 && samples.some(l => l.endsWith(`mode="${name}"} 1`)), `metrics: one active mode ${name}`);
+  }
+  let output = render();
+  for (const metric of ['operation_status', 'error_status', 'instant_power_w', 'total_energy_kwh', 'set_temperature_c', 'room_temperature_c', 'room_humidity_percent', 'outdoor_temperature_c', 'device_info']) {
+    assert(output.includes(`nocria_ac_${metric}{`), `metrics: exports ${metric}`);
+  }
+  assert(output.includes('identification="01 02 03",manufacturer_code="00 00 01"} 1'), 'metrics: device info labels');
+  assert(output.includes('name="room\\"\\\\test\\n"'), 'metrics: escapes labels');
+  values[0x80] = value('31', 'OFF');
+  assert(render().split('\n').some(l => l.startsWith('nocria_ac_operation_status{') && l.endsWith(' 0')), 'metrics: OFF');
+  assert(render().includes('mode="other"} 1'), 'metrics: mode is available while OFF');
+  values[0xB0] = value('ff'); values[0x80] = value('ff'); values[0x88] = value('ff');
+  output = render();
+  for (const metric of ['operation_mode', 'operation_status', 'error_status']) {
+    assert(!output.includes(`nocria_ac_${metric}{`), `metrics: omits unknown ${metric}`);
+  }
+  values[0xB0] = value('42', '', false);
+  values[0x83] = value('', '', false);
+  assert(!render().includes('nocria_ac_operation_mode{'), 'metrics: invalid mode omitted');
+  assert(!render().includes('nocria_ac_device_info{'), 'metrics: incomplete info omitted');
+  const empty = renderMetrics([device], { [device.ip]: { values: {}, lastSuccessAt: 1000 } }, 100000);
+  assert(!empty.includes('nocria_ac_operation_mode{'), 'metrics: missing mode omitted');
+  assert(empty.split('\n').some(l => l.startsWith('nocria_ac_stale{') && l.endsWith(' 1')), 'metrics: stale remains visible');
+  assert(!renderMetrics([device], {}, 2000).includes('nocria_ac_operation_status{'), 'metrics: pending has no false OFF');
 })();
 
 // ---- summary ----

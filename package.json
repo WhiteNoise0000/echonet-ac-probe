@@ -1,6 +1,6 @@
 {
   "name": "echonet-ac-probe",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "ECHONET Lite device discovery probe for Home Air Conditioners (OP-J03DZ)",
   "scripts": {
@@ -8,7 +8,7 @@
     "inspect": "bun src/inspect.js",
     "start": "bun src/server.js",
     "dev": "bun src/server.js",
-    "lint": "bun build --target=bun --no-bundle --outdir=.bun-check src/config.js src/echonet.js src/inspect.js src/poller.js src/probe.js src/server.js src/test.js src/retry-test.js src/version.js",
+    "lint": "bun build --target=bun --no-bundle --outdir=.bun-check src/config.js src/echonet.js src/inspect.js src/poller.js src/metrics.js src/probe.js src/server.js src/test.js src/retry-test.js src/version.js",
     "test": "bun src/test.js && bun src/retry-test.js"
   },
   "dependencies": {
